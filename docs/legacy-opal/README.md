@@ -12,4 +12,18 @@ Google Opal은 RGF의 prototype, reasoning laboratory, prompt development enviro
 - representative Generate Brief HTML failures
 - legacy notes/provenance
 
-아직 실제 파일은 제공되지 않았다. Asset 내용을 추측하여 재구성하지 않는다. 기존 Opal output은 GOLD ANSWER가 아닌 legacy baseline으로 취급한다.
+Foundation-01 당시에는 실제 파일이 제공되지 않았다. Foundation-02에서 아래 자산을 migration했다. Asset 내용을 추측하여 재구성하지 않는다. 기존 Opal output은 GOLD ANSWER가 아닌 legacy baseline으로 취급한다.
+
+## Migrated assets — Foundation-02
+
+다음은 repository root 기준 상대경로다.
+
+- benchmark source: `docs/legacy-opal/benchmark/deepfake-policy-source-2024-11.pdf`
+- reporting-discovery prompt: `docs/legacy-opal/prompts/reporting-discovery-prompt.txt`
+- final evidence validator prompt: `docs/legacy-opal/prompts/final-evidence-validator-prompt.txt`
+- Opal reporting-analysis baseline: `docs/legacy-opal/baselines/opal-reporting-analysis-baseline.json`
+- verbatim/pre-dump HTML failure: `docs/legacy-opal/failures/generate-brief-verbatim-pre-dump.html`
+- pretty-but-lossy HTML failure: `docs/legacy-opal/failures/generate-brief-pretty-lossy.html`
+- migration notes: `docs/legacy-opal/migration-package-notes.md`
+
+Migration은 canonicalization이 아니다. Baseline은 gold answer가 아니다. HTML failure는 renderer template가 아니다. 누락된 source-structuring prompt와 독립 validation output은 추측 생성하지 않았다.
