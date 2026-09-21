@@ -6,9 +6,10 @@ Google Opal에서 실제 사용·생성된 RGF 자산을 standalone 구현 전�
 
 ## 포함 자산
 
-다음은 repository root 기준 상대경로다. 여섯 자산은 package 원본과 byte-for-byte 동일하게 보존했다.
+다음은 repository root 기준 상대경로다. 기존 여섯 자산은 package 원본과 byte-for-byte 동일하게 보존했다. Source-structuring prompt는 이후 제공된 원문으로 추가 이전했다.
 
 - benchmark 원문 PDF: `docs/legacy-opal/benchmark/deepfake-policy-source-2024-11.pdf`
+- source-structuring prompt (추가 이전 완료): `docs/legacy-opal/prompts/source-structuring-prompt.txt`
 - reporting-discovery prompt: `docs/legacy-opal/prompts/reporting-discovery-prompt.txt`
 - final evidence validator prompt: `docs/legacy-opal/prompts/final-evidence-validator-prompt.txt`
 - 실제 Opal reporting-analysis JSON baseline: `docs/legacy-opal/baselines/opal-reporting-analysis-baseline.json`
@@ -36,8 +37,7 @@ Google Opal에서 실제 사용·생성된 RGF 자산을 standalone 구현 전�
 
 ## 현재 누락 자산
 
-- source-structuring prompt
-- 별도의 독립 validation output
+- 별도의 독립 validation output (여전히 미확보)
 
 이번 migration에서는 위 자산을 추측하거나 재구성하지 않았다.
 
