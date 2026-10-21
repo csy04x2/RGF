@@ -8,3 +8,5 @@ outputs/
 runtime-output/
 uploads/
 .streamlit/secrets.toml
+
+.pytest_tmp/
