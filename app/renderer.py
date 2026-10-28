@@ -12,16 +12,29 @@ ENV = Environment(
 )
 
 
-def render(a: ReportingAnalysis, warnings=None) -> str:
+
+def render(
+    a: ReportingAnalysis,
+    warnings=None,
+    relation_reviews: RelationReviewResult | None = None,
+) -> str:
     if warnings is None:
         warnings = []
+
+    reviews = (
+        relation_reviews.reviews
+        if relation_reviews is not None
+        else []
+    )
 
     html = ENV.get_template("report.html.j2").render(
         a=a,
         collections=COLLECTIONS,
         object_id=object_id,
         warnings=warnings,
+        relation_reviews=reviews,
     )
+
 
     for collection, ids in snapshot(a).items():
         if html.count(f'data-collection="{collection}"') != len(ids):
@@ -36,3 +49,5 @@ def render(a: ReportingAnalysis, warnings=None) -> str:
                 )
 
     return html
+
+from .relation_review import RelationReviewResult

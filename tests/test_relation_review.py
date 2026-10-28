@@ -208,3 +208,55 @@ def test_relation_review_prompt_contains_relationship_data():
     assert "PA1" in prompt
     assert "학교 예방교육이 실제 시행됐는가?" in prompt
     assert "형사처벌 강화" in prompt
+
+
+from app.renderer import render
+
+
+def test_integrated_html_preserves_reviews_and_objects():
+    analysis = make_review_analysis()
+
+    reviews = RelationReviewResult.model_validate({
+        "reviews": [
+            {
+                "lead_id": "RL1",
+                "target_type": "policy_action",
+                "target_id": "PA1",
+                "verdict": "UNRELATED",
+                "reason": "취재 질문과 연결된 정책의 내용이 다름",
+                "suggested_action": "정책 근거를 다시 확인하세요",
+            }
+        ]
+    })
+
+    html = render(
+        analysis,
+        warnings=["PA1: 정책 시행 상태 확인 필요"],
+        relation_reviews=reviews,
+    )
+
+    # 정책 시행 상태 경고가 표시되어야 한다.
+    assert "정책 시행 상태 검토 필요" in html
+    assert "PA1: 정책 시행 상태 확인 필요" in html
+
+    # AI 관계 검토 결과가 표시되어야 한다.
+    assert "AI 관계 검토 결과" in html
+    assert "UNRELATED" in html
+    assert "취재 질문과 연결된 정책의 내용이 다름" in html
+    assert "정책 근거를 다시 확인하세요" in html
+
+    # 기존 분석 객체가 삭제되면 안 된다.
+    assert 'data-object-id="PA1"' in html
+    assert 'data-object-id="RL1"' in html
+
+
+def test_integrated_html_without_reviews():
+    analysis = make_review_analysis()
+
+    html = render(analysis)
+
+    # 관계 검토 결과를 입력하지 않아도 기존 보고서는 생성돼야 한다.
+    assert "RGF Reporting Brief" in html
+    assert 'data-object-id="PA1"' in html
+    assert 'data-object-id="RL1"' in html
+    assert "AI 관계 검토 결과" not in html

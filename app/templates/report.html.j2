@@ -34,7 +34,34 @@
 
         .review-warning li {
             margin-bottom: 0.5rem;
-        }
+        
+.relation-review {
+    border: 1px solid #ddd;
+    padding: 1.25rem;
+    margin: 1.5rem 0;
+    border-radius: 8px;
+}
+
+.relation-review article {
+    border-left: 5px solid #d69e2e;
+    background: #fffaf0;
+    border-radius: 4px;
+}
+
+.relation-review article.unrelated {
+    border-left-color: #c53030;
+    background: #fff5f5;
+}
+
+.relation-review article.questionable {
+    border-left-color: #d69e2e;
+}
+
+.relation-review .review-meta {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
     </style>
 </head>
 
@@ -59,6 +86,43 @@
     {% endif %}
 
     <p>{{ a.discovery_summary }}</p>
+    
+{% if relation_reviews %}
+<section class="relation-review">
+    <h2>AI 관계 검토 결과</h2>
+
+    <p>
+        총 {{ relation_reviews|length }}개 연결 관계를 검토했습니다.
+        이 결과는 AI의 검토 의견이며 최종 판정은 기자가 수행합니다.
+    </p>
+
+    {% for review in relation_reviews %}
+        {% if review.verdict != "SUPPORTED" %}
+        <article class="{{ review.verdict|lower }}">
+            <h3>
+                {{ review.lead_id }} →
+                {{ review.target_id }}
+            </h3>
+
+            <p class="review-meta">
+                판정: {{ review.verdict }}
+            </p>
+
+            <p>
+                <strong>검토 이유:</strong>
+                {{ review.reason }}
+            </p>
+
+            <p>
+                <strong>제안 조치:</strong>
+                {{ review.suggested_action }}
+            </p>
+        </article>
+        {% endif %}
+    {% endfor %}
+</section>
+{% endif %}
+
 
     {% for cname in collections %}
     <section>
