@@ -1,1 +1,79 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>RGF Reporting Brief</title><style>body{font-family:system-ui;max-width:1100px;margin:auto;padding:2rem}article{border:1px solid #ddd;padding:1rem;margin:1rem 0}pre{white-space:pre-wrap}</style></head><body><h1>RGF Reporting Brief</h1><p>{{ a.discovery_summary }}</p>{% for cname in collections %}<section><h2>{{ cname }}</h2>{% for o in a|attr(cname) %}<article data-collection="{{ cname }}" data-object-id="{{ object_id(o) }}"><h3>{{ object_id(o) }}</h3><pre>{{ o.model_dump_json(indent=2) }}</pre></article>{% endfor %}</section>{% endfor %}</body></html>
+
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <title>RGF Reporting Brief</title>
+    <style>
+        body {
+            font-family: system-ui;
+            max-width: 1100px;
+            margin: auto;
+            padding: 2rem;
+            line-height: 1.6;
+        }
+
+        article {
+            border: 1px solid #ddd;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .review-warning {
+            border: 1px solid #d69e2e;
+            border-left: 5px solid #d69e2e;
+            background: #fffaf0;
+            padding: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .review-warning li {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>RGF Reporting Brief</h1>
+
+    {% if warnings %}
+    <section class="review-warning">
+        <h2>정책 시행 상태 검토 필요</h2>
+
+        <p>
+            {{ warnings|length }}개의 검토 항목이 발견되었습니다.
+            아래 내용은 자동 판정이 아닌 기자 확인 대상입니다.
+        </p>
+
+        <ul>
+            {% for warning in warnings %}
+            <li>{{ warning }}</li>
+            {% endfor %}
+        </ul>
+    </section>
+    {% endif %}
+
+    <p>{{ a.discovery_summary }}</p>
+
+    {% for cname in collections %}
+    <section>
+        <h2>{{ cname }}</h2>
+
+        {% for o in a|attr(cname) %}
+        <article
+            data-collection="{{ cname }}"
+            data-object-id="{{ object_id(o) }}"
+        >
+            <h3>{{ object_id(o) }}</h3>
+            <pre>{{ o.model_dump_json(indent=2) }}</pre>
+        </article>
+        {% endfor %}
+    </section>
+    {% endfor %}
+</body>
+</html>

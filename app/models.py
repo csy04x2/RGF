@@ -27,8 +27,18 @@ Lens=Literal['IMPLEMENTATION','OUTCOME','MEASUREMENT','PROBLEM_RESPONSE_FIT','LE
 LimitationType=Literal['SOURCE_INSUFFICIENCY','PROVENANCE_UNCERTAINTY','EXTERNAL_VERIFICATION_REQUIRED','OTHER']
 class PolicyAction(StrictModel):
     id:str; action:str; status:Status; responsible_actors:list[str]; deadline:str|None=None; affected_groups:list[str]; dependencies:list[str]; provenance:Provenance
+
 class MaterialChange(StrictModel):
-    id:str; change:str; before:str; after:str; affected_groups:list[str]; analytical_implication:str; unknown:str; provenance:Provenance
+    id: str
+    change: str
+    before: str
+    after: str
+    implementation_status: Status = "UNKNOWN"
+    affected_groups: list[str]
+    analytical_implication: str
+    unknown: str
+    provenance: Provenance
+
 class RelatedItem(StrictModel):
     type:Literal['policy_action','material_change','source_claim']; id:str|None=None; description:str
 class ReportingLead(StrictModel):

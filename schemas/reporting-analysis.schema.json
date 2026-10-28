@@ -1,1 +1,632 @@
-{"$defs":{"FollowUp":{"additionalProperties":false,"properties":{"id":{"title":"Id","type":"string"},"related_lead_ids":{"items":{"type":"string"},"title":"Related Lead Ids","type":"array"},"related_policy_action_ids":{"items":{"type":"string"},"title":"Related Policy Action Ids","type":"array"},"promise":{"title":"Promise","type":"string"},"responsible_actors":{"items":{"type":"string"},"title":"Responsible Actors","type":"array"},"target_date":{"anyOf":[{"type":"string"},{"type":"null"}],"default":null,"title":"Target Date"},"what_to_check":{"title":"What To Check","type":"string"},"completion_evidence":{"items":{"type":"string"},"title":"Completion Evidence","type":"array"},"operation_indicators":{"items":{"type":"string"},"title":"Operation Indicators","type":"array"},"follow_up_questions":{"items":{"type":"string"},"title":"Follow Up Questions","type":"array"},"provenance":{"$ref":"#/$defs/Provenance"}},"required":["id","related_lead_ids","related_policy_action_ids","promise","responsible_actors","what_to_check","completion_evidence","operation_indicators","follow_up_questions","provenance"],"title":"FollowUp","type":"object"},"Limitation":{"additionalProperties":false,"properties":{"id":{"title":"Id","type":"string"},"type":{"enum":["SOURCE_INSUFFICIENCY","PROVENANCE_UNCERTAINTY","EXTERNAL_VERIFICATION_REQUIRED","OTHER"],"title":"Type","type":"string"},"description":{"title":"Description","type":"string"}},"required":["id","type","description"],"title":"Limitation","type":"object"},"MaterialChange":{"additionalProperties":false,"properties":{"id":{"title":"Id","type":"string"},"change":{"title":"Change","type":"string"},"before":{"title":"Before","type":"string"},"after":{"title":"After","type":"string"},"affected_groups":{"items":{"type":"string"},"title":"Affected Groups","type":"array"},"analytical_implication":{"title":"Analytical Implication","type":"string"},"unknown":{"title":"Unknown","type":"string"},"provenance":{"$ref":"#/$defs/Provenance"}},"required":["id","change","before","after","affected_groups","analytical_implication","unknown","provenance"],"title":"MaterialChange","type":"object"},"Perspective":{"additionalProperties":false,"properties":{"id":{"title":"Id","type":"string"},"related_lead_ids":{"items":{"type":"string"},"title":"Related Lead Ids","type":"array"},"target":{"title":"Target","type":"string"},"why_needed":{"title":"Why Needed","type":"string"},"questions":{"items":{"type":"string"},"title":"Questions","type":"array"},"information_needed":{"items":{"type":"string"},"title":"Information Needed","type":"array"}},"required":["id","related_lead_ids","target","why_needed","questions","information_needed"],"title":"Perspective","type":"object"},"PolicyAction":{"additionalProperties":false,"properties":{"id":{"title":"Id","type":"string"},"action":{"title":"Action","type":"string"},"status":{"enum":["IN_EFFECT","ONGOING","PLANNED","LEGISLATION_REQUIRED","ANNOUNCED","UNKNOWN"],"title":"Status","type":"string"},"responsible_actors":{"items":{"type":"string"},"title":"Responsible Actors","type":"array"},"deadline":{"anyOf":[{"type":"string"},{"type":"null"}],"default":null,"title":"Deadline"},"affected_groups":{"items":{"type":"string"},"title":"Affected Groups","type":"array"},"dependencies":{"items":{"type":"string"},"title":"Dependencies","type":"array"},"provenance":{"$ref":"#/$defs/Provenance"}},"required":["id","action","status","responsible_actors","affected_groups","dependencies","provenance"],"title":"PolicyAction","type":"object"},"Provenance":{"additionalProperties":false,"properties":{"page":{"anyOf":[{"type":"string"},{"type":"integer"},{"type":"null"}],"default":null,"title":"Page"},"section":{"anyOf":[{"type":"string"},{"type":"null"}],"default":null,"title":"Section"},"excerpt":{"anyOf":[{"type":"string"},{"type":"null"}],"default":null,"title":"Excerpt"},"source_basis":{"anyOf":[{"type":"string"},{"type":"null"}],"default":null,"title":"Source Basis"}},"title":"Provenance","type":"object"},"RelatedItem":{"additionalProperties":false,"properties":{"type":{"enum":["policy_action","material_change","source_claim"],"title":"Type","type":"string"},"id":{"anyOf":[{"type":"string"},{"type":"null"}],"default":null,"title":"Id"},"description":{"title":"Description","type":"string"}},"required":["type","description"],"title":"RelatedItem","type":"object"},"ReportingAction":{"additionalProperties":false,"properties":{"id":{"title":"Id","type":"string"},"related_lead_ids":{"items":{"type":"string"},"title":"Related Lead Ids","type":"array"},"what_to_verify":{"title":"What To Verify","type":"string"},"why_it_matters":{"title":"Why It Matters","type":"string"},"sources_or_contacts":{"items":{"type":"string"},"title":"Sources Or Contacts","type":"array"},"questions":{"items":{"type":"string"},"title":"Questions","type":"array"},"documents_or_data_to_request":{"items":{"type":"string"},"title":"Documents Or Data To Request","type":"array"},"expected_evidence":{"items":{"type":"string"},"title":"Expected Evidence","type":"array"},"provenance":{"$ref":"#/$defs/Provenance"}},"required":["id","related_lead_ids","what_to_verify","why_it_matters","sources_or_contacts","questions","documents_or_data_to_request","expected_evidence","provenance"],"title":"ReportingAction","type":"object"},"ReportingLead":{"additionalProperties":false,"properties":{"lead_id":{"title":"Lead Id","type":"string"},"priority":{"enum":["A","B","C"],"title":"Priority","type":"string"},"lenses":{"items":{"enum":["IMPLEMENTATION","OUTCOME","MEASUREMENT","PROBLEM_RESPONSE_FIT","LEGAL_REGULATORY_BOUNDARY","AFFECTED_PARTY_PERSPECTIVE","ACCOUNTABILITY_FOLLOW_UP","INTERNAL_TENSION_DEPENDENCY","BURIED_SIGNIFICANCE"],"type":"string"},"title":"Lenses","type":"array"},"related_items":{"items":{"$ref":"#/$defs/RelatedItem"},"title":"Related Items","type":"array"},"source_signal":{"title":"Source Signal","type":"string"},"material_implication":{"title":"Material Implication","type":"string"},"unknown":{"title":"Unknown","type":"string"},"reporting_question":{"title":"Reporting Question","type":"string"},"why_it_matters":{"title":"Why It Matters","type":"string"},"evidence_needed":{"items":{"type":"string"},"title":"Evidence Needed","type":"array"},"targets":{"items":{"type":"string"},"title":"Targets","type":"array"},"provenance":{"$ref":"#/$defs/Provenance"}},"required":["lead_id","priority","lenses","related_items","source_signal","material_implication","unknown","reporting_question","why_it_matters","evidence_needed","targets","provenance"],"title":"ReportingLead","type":"object"}},"additionalProperties":false,"properties":{"discovery_summary":{"title":"Discovery Summary","type":"string"},"policy_actions":{"items":{"$ref":"#/$defs/PolicyAction"},"title":"Policy Actions","type":"array"},"material_changes":{"items":{"$ref":"#/$defs/MaterialChange"},"title":"Material Changes","type":"array"},"reporting_leads":{"items":{"$ref":"#/$defs/ReportingLead"},"title":"Reporting Leads","type":"array"},"follow_ups":{"items":{"$ref":"#/$defs/FollowUp"},"title":"Follow Ups","type":"array"},"perspectives":{"items":{"$ref":"#/$defs/Perspective"},"title":"Perspectives","type":"array"},"reporting_actions":{"items":{"$ref":"#/$defs/ReportingAction"},"title":"Reporting Actions","type":"array"},"limitations":{"items":{"$ref":"#/$defs/Limitation"},"title":"Limitations","type":"array"}},"required":["discovery_summary","policy_actions","material_changes","reporting_leads","follow_ups","perspectives","reporting_actions","limitations"],"title":"ReportingAnalysis","type":"object"}
+{
+  "$defs": {
+    "FollowUp": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "related_lead_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Related Lead Ids",
+          "type": "array"
+        },
+        "related_policy_action_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Related Policy Action Ids",
+          "type": "array"
+        },
+        "promise": {
+          "title": "Promise",
+          "type": "string"
+        },
+        "responsible_actors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Responsible Actors",
+          "type": "array"
+        },
+        "target_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Date"
+        },
+        "what_to_check": {
+          "title": "What To Check",
+          "type": "string"
+        },
+        "completion_evidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Completion Evidence",
+          "type": "array"
+        },
+        "operation_indicators": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Operation Indicators",
+          "type": "array"
+        },
+        "follow_up_questions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Follow Up Questions",
+          "type": "array"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        }
+      },
+      "required": [
+        "id",
+        "related_lead_ids",
+        "related_policy_action_ids",
+        "promise",
+        "responsible_actors",
+        "what_to_check",
+        "completion_evidence",
+        "operation_indicators",
+        "follow_up_questions",
+        "provenance"
+      ],
+      "title": "FollowUp",
+      "type": "object"
+    },
+    "Limitation": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "SOURCE_INSUFFICIENCY",
+            "PROVENANCE_UNCERTAINTY",
+            "EXTERNAL_VERIFICATION_REQUIRED",
+            "OTHER"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "description"
+      ],
+      "title": "Limitation",
+      "type": "object"
+    },
+    "MaterialChange": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "change": {
+          "title": "Change",
+          "type": "string"
+        },
+        "before": {
+          "title": "Before",
+          "type": "string"
+        },
+        "after": {
+          "title": "After",
+          "type": "string"
+        },
+        "implementation_status": {
+          "default": "UNKNOWN",
+          "enum": [
+            "IN_EFFECT",
+            "ONGOING",
+            "PLANNED",
+            "LEGISLATION_REQUIRED",
+            "ANNOUNCED",
+            "UNKNOWN"
+          ],
+          "title": "Implementation Status",
+          "type": "string"
+        },
+        "affected_groups": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Affected Groups",
+          "type": "array"
+        },
+        "analytical_implication": {
+          "title": "Analytical Implication",
+          "type": "string"
+        },
+        "unknown": {
+          "title": "Unknown",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        }
+      },
+      "required": [
+        "id",
+        "change",
+        "before",
+        "after",
+        "affected_groups",
+        "analytical_implication",
+        "unknown",
+        "provenance"
+      ],
+      "title": "MaterialChange",
+      "type": "object"
+    },
+    "Perspective": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "related_lead_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Related Lead Ids",
+          "type": "array"
+        },
+        "target": {
+          "title": "Target",
+          "type": "string"
+        },
+        "why_needed": {
+          "title": "Why Needed",
+          "type": "string"
+        },
+        "questions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Questions",
+          "type": "array"
+        },
+        "information_needed": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Information Needed",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "related_lead_ids",
+        "target",
+        "why_needed",
+        "questions",
+        "information_needed"
+      ],
+      "title": "Perspective",
+      "type": "object"
+    },
+    "PolicyAction": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "action": {
+          "title": "Action",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "IN_EFFECT",
+            "ONGOING",
+            "PLANNED",
+            "LEGISLATION_REQUIRED",
+            "ANNOUNCED",
+            "UNKNOWN"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "responsible_actors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Responsible Actors",
+          "type": "array"
+        },
+        "deadline": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Deadline"
+        },
+        "affected_groups": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Affected Groups",
+          "type": "array"
+        },
+        "dependencies": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Dependencies",
+          "type": "array"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        }
+      },
+      "required": [
+        "id",
+        "action",
+        "status",
+        "responsible_actors",
+        "affected_groups",
+        "dependencies",
+        "provenance"
+      ],
+      "title": "PolicyAction",
+      "type": "object"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "page": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page"
+        },
+        "section": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Section"
+        },
+        "excerpt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Excerpt"
+        },
+        "source_basis": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Basis"
+        }
+      },
+      "title": "Provenance",
+      "type": "object"
+    },
+    "RelatedItem": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "policy_action",
+            "material_change",
+            "source_claim"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Id"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "description"
+      ],
+      "title": "RelatedItem",
+      "type": "object"
+    },
+    "ReportingAction": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "related_lead_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Related Lead Ids",
+          "type": "array"
+        },
+        "what_to_verify": {
+          "title": "What To Verify",
+          "type": "string"
+        },
+        "why_it_matters": {
+          "title": "Why It Matters",
+          "type": "string"
+        },
+        "sources_or_contacts": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sources Or Contacts",
+          "type": "array"
+        },
+        "questions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Questions",
+          "type": "array"
+        },
+        "documents_or_data_to_request": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Documents Or Data To Request",
+          "type": "array"
+        },
+        "expected_evidence": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Expected Evidence",
+          "type": "array"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        }
+      },
+      "required": [
+        "id",
+        "related_lead_ids",
+        "what_to_verify",
+        "why_it_matters",
+        "sources_or_contacts",
+        "questions",
+        "documents_or_data_to_request",
+        "expected_evidence",
+        "provenance"
+      ],
+      "title": "ReportingAction",
+      "type": "object"
+    },
+    "ReportingLead": {
+      "additionalProperties": false,
+      "properties": {
+        "lead_id": {
+          "title": "Lead Id",
+          "type": "string"
+        },
+        "priority": {
+          "enum": [
+            "A",
+            "B",
+            "C"
+          ],
+          "title": "Priority",
+          "type": "string"
+        },
+        "lenses": {
+          "items": {
+            "enum": [
+              "IMPLEMENTATION",
+              "OUTCOME",
+              "MEASUREMENT",
+              "PROBLEM_RESPONSE_FIT",
+              "LEGAL_REGULATORY_BOUNDARY",
+              "AFFECTED_PARTY_PERSPECTIVE",
+              "ACCOUNTABILITY_FOLLOW_UP",
+              "INTERNAL_TENSION_DEPENDENCY",
+              "BURIED_SIGNIFICANCE"
+            ],
+            "type": "string"
+          },
+          "title": "Lenses",
+          "type": "array"
+        },
+        "related_items": {
+          "items": {
+            "$ref": "#/$defs/RelatedItem"
+          },
+          "title": "Related Items",
+          "type": "array"
+        },
+        "source_signal": {
+          "title": "Source Signal",
+          "type": "string"
+        },
+        "material_implication": {
+          "title": "Material Implication",
+          "type": "string"
+        },
+        "unknown": {
+          "title": "Unknown",
+          "type": "string"
+        },
+        "reporting_question": {
+          "title": "Reporting Question",
+          "type": "string"
+        },
+        "why_it_matters": {
+          "title": "Why It Matters",
+          "type": "string"
+        },
+        "evidence_needed": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Needed",
+          "type": "array"
+        },
+        "targets": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Targets",
+          "type": "array"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        }
+      },
+      "required": [
+        "lead_id",
+        "priority",
+        "lenses",
+        "related_items",
+        "source_signal",
+        "material_implication",
+        "unknown",
+        "reporting_question",
+        "why_it_matters",
+        "evidence_needed",
+        "targets",
+        "provenance"
+      ],
+      "title": "ReportingLead",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "discovery_summary": {
+      "title": "Discovery Summary",
+      "type": "string"
+    },
+    "policy_actions": {
+      "items": {
+        "$ref": "#/$defs/PolicyAction"
+      },
+      "title": "Policy Actions",
+      "type": "array"
+    },
+    "material_changes": {
+      "items": {
+        "$ref": "#/$defs/MaterialChange"
+      },
+      "title": "Material Changes",
+      "type": "array"
+    },
+    "reporting_leads": {
+      "items": {
+        "$ref": "#/$defs/ReportingLead"
+      },
+      "title": "Reporting Leads",
+      "type": "array"
+    },
+    "follow_ups": {
+      "items": {
+        "$ref": "#/$defs/FollowUp"
+      },
+      "title": "Follow Ups",
+      "type": "array"
+    },
+    "perspectives": {
+      "items": {
+        "$ref": "#/$defs/Perspective"
+      },
+      "title": "Perspectives",
+      "type": "array"
+    },
+    "reporting_actions": {
+      "items": {
+        "$ref": "#/$defs/ReportingAction"
+      },
+      "title": "Reporting Actions",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "$ref": "#/$defs/Limitation"
+      },
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "discovery_summary",
+    "policy_actions",
+    "material_changes",
+    "reporting_leads",
+    "follow_ups",
+    "perspectives",
+    "reporting_actions",
+    "limitations"
+  ],
+  "title": "ReportingAnalysis",
+  "type": "object"
+}
