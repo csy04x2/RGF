@@ -99,3 +99,38 @@ def test_status_warnings_appear_in_html():
     assert "정책 시행 상태 검토 필요" in html
     assert warnings[0] in html
     assert 'data-object-id="MC1"' in html
+
+
+def test_mixed_policy_status_warning():
+    data = {
+        "discovery_summary": "Test",
+        "policy_actions": [
+            {
+                "id": "PA10",
+                "action": "전담검사 확대 및 수사부 추가 설치",
+                "status": "IN_EFFECT",
+                "responsible_actors": ["검찰청"],
+                "affected_groups": ["수사기관"],
+                "dependencies": [],
+                "provenance": {
+                    "page": 6,
+                    "excerpt": (
+                        "전담검사(23→43명)확대(9.2)확대완료..."
+                        "지역거점검찰청등에여성·아동범죄수사부"
+                        "추가설치(12→24곳)추진중"
+    ),
+               },
+            }
+        ],
+        "material_changes": [],
+        "reporting_leads": [],
+        "follow_ups": [],
+        "perspectives": [],
+        "reporting_actions": [],
+        "limitations": [],
+    }
+
+    analysis = ReportingAnalysis.model_validate(data)
+    warnings = find_status_warnings(analysis)
+
+    assert any("PA10" in warning for warning in warnings)

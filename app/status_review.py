@@ -45,6 +45,35 @@ def find_status_warnings(analysis: ReportingAnalysis) -> list[str]:
         if status != "IN_EFFECT":
             continue
 
+        # Detect mixed completed and proposed actions.
+        completion_phrases = (
+            "완료",
+            "시행 중",
+            "시행중",
+        )
+
+        proposal_indicators = (
+            "추진중",
+            "추진 중",
+            "추진 예정",
+        )
+
+        has_completed = any(
+            phrase in excerpt for phrase in completion_phrases
+        )
+
+        has_proposed = any(
+            phrase in excerpt for phrase in proposal_indicators
+        )
+
+        if has_completed and has_proposed:
+            warnings.append(
+                f"{item_id}: 완료된 조치와 추진 중인 조치가 "
+                "하나의 시행 상태로 분류됐을 가능성이 있습니다. "
+                "정책을 분리해 확인하세요."
+            )
+            continue
+
         if any(phrase in excerpt for phrase in proposal_phrases):
             warnings.append(
                 f"{item_id}: 시행 중(IN_EFFECT)으로 분류됐지만 "
