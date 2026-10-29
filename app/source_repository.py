@@ -1,5 +1,5 @@
 
-from app.db import get_connection
+from app.database import get_connection
 
 
 def create_source_document(
@@ -64,7 +64,7 @@ def get_source_document(document_id):
     cursor = None
 
     try:
-        cursor = conn.cursor(dictionary=True)
+        cursor = conn.cursor()
 
         sql = """
             SELECT

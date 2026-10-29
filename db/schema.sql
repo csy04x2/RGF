@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS analysis_runs (
 CREATE TABLE IF NOT EXISTS article_ideas (
  id BIGINT PRIMARY KEY AUTO_INCREMENT,
  analysis_run_id BIGINT NOT NULL,
+  lead_id VARCHAR(50),
  title VARCHAR(500) NOT NULL,
  angle TEXT NOT NULL,
  why_it_matters TEXT NOT NULL,
@@ -56,9 +57,12 @@ CREATE TABLE IF NOT EXISTS article_ideas (
  priority ENUM('HIGH','MEDIUM','LOW') NOT NULL,
  review_status ENUM('검토대기','승인','보류') NOT NULL DEFAULT '검토대기',
  review_note TEXT,
+  reviewer VARCHAR(255),
+ reviewed_at DATETIME,
  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
  INDEX idx_idea_run (analysis_run_id),
+  UNIQUE KEY uq_article_ideas_run_lead (analysis_run_id, lead_id),
  CONSTRAINT fk_idea_run FOREIGN KEY (analysis_run_id) REFERENCES analysis_runs(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
