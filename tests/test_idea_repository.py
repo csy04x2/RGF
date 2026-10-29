@@ -108,3 +108,121 @@ def test_invalid_lead_does_not_connect(monkeypatch):
             analysis_run_id=1,
             lead_id="RL999",
         )
+
+
+from unittest.mock import MagicMock
+
+from app.review import JournalistReview, update_review
+
+
+def make_approved_review():
+    review = JournalistReview(
+        lead_id="RL7",
+        reviewer="테스트 기자",
+    )
+    return update_review(
+        review,
+        status="승인",
+        review_note="원문 근거 확인 완료",
+    )
+
+
+def test_save_journalist_review_success(monkeypatch):
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    cursor.rowcount = 1
+
+    monkeypatch.setattr(
+        idea_repository,
+        "get_connection",
+        lambda: connection,
+    )
+
+    idea_repository.save_journalist_review(
+        analysis_run_id=1,
+        review=make_approved_review(),
+    )
+
+    cursor.execute.assert_called_once()
+    sql, values = cursor.execute.call_args.args
+
+    assert "UPDATE article_ideas" in sql
+    assert "analysis_run_id = %s" in sql
+    assert "lead_id = %s" in sql
+    assert values[0] == "승인"
+    assert values[4] == 1
+    assert values[5] == "RL7"
+
+    connection.commit.assert_called_once()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once()
+
+
+def test_save_journalist_review_missing_target(monkeypatch):
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    cursor.rowcount = 0
+    cursor.fetchone.return_value = None
+
+    monkeypatch.setattr(
+        idea_repository,
+        "get_connection",
+        lambda: connection,
+    )
+
+    with pytest.raises(ValueError, match="검토 대상"):
+        idea_repository.save_journalist_review(
+            analysis_run_id=1,
+            review=make_approved_review(),
+        )
+
+    connection.commit.assert_not_called()
+    connection.rollback.assert_called_once()
+    connection.close.assert_called_once()
+
+
+def test_save_journalist_review_db_error(monkeypatch):
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    cursor.execute.side_effect = RuntimeError("DB 오류")
+
+    monkeypatch.setattr(
+        idea_repository,
+        "get_connection",
+        lambda: connection,
+    )
+
+    with pytest.raises(RuntimeError, match="DB 오류"):
+        idea_repository.save_journalist_review(
+            analysis_run_id=1,
+            review=make_approved_review(),
+        )
+
+    connection.commit.assert_not_called()
+    connection.rollback.assert_called_once()
+    connection.close.assert_called_once()
+
+
+def test_save_journalist_review_same_values_again(monkeypatch):
+    """An existing review should allow saving identical values again."""
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+
+    # MySQL can return zero when UPDATE changes no values.
+    cursor.rowcount = 0
+    cursor.fetchone.return_value = {"id": 7}
+
+    monkeypatch.setattr(
+        idea_repository,
+        "get_connection",
+        lambda: connection,
+    )
+
+    idea_repository.save_journalist_review(
+        analysis_run_id=1,
+        review=make_approved_review(),
+    )
+
+    connection.commit.assert_called_once()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once()
