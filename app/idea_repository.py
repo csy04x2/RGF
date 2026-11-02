@@ -71,6 +71,7 @@ def save_article_idea(
         priority,
     )
 
+
     connection = get_connection()
 
     try:
@@ -168,3 +169,97 @@ def save_journalist_review(
 
     finally:
         connection.close()
+
+
+
+def link_article_evidence(
+    article_idea_id: int,
+    source_evidence_id: int,
+    relation_type: str,
+    explanation: str,
+) -> None:
+    """Link an article idea to evidence without duplicate records."""
+
+    allowed_types = {"SUPPORTS", "CONTEXT", "GAP_TRIGGER"}
+
+    if article_idea_id <= 0:
+        raise ValueError("Invalid article idea ID")
+
+    if source_evidence_id <= 0:
+        raise ValueError("Invalid source evidence ID")
+
+    if relation_type not in allowed_types:
+        raise ValueError("Invalid evidence relation type")
+
+    if not explanation.strip():
+        raise ValueError("Evidence relation explanation is required")
+
+    sql = """
+        INSERT INTO article_evidence (
+            article_idea_id,
+            source_evidence_id,
+            relation_type,
+            explanation
+        )
+        VALUES (%s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE
+            article_idea_id = article_idea_id
+    """
+
+    connection = get_connection()
+
+    try:
+        with connection.cursor() as cursor:
+            # Check that the idea and evidence belong
+            # to the same source document.
+            cursor.execute(
+                """
+                SELECT
+                    ar.source_document_id AS idea_source_id,
+                    se.source_document_id AS evidence_source_id
+                FROM article_ideas ai
+                JOIN analysis_runs ar
+                    ON ai.analysis_run_id = ar.id
+                CROSS JOIN source_evidence se
+                WHERE ai.id = %s
+                  AND se.id = %s
+                """,
+                (article_idea_id, source_evidence_id),
+            )
+
+            source_pair = cursor.fetchone()
+
+            if source_pair is None:
+                raise ValueError(
+                    "Article idea or source evidence does not exist"
+                )
+
+            if (
+                source_pair["idea_source_id"]
+                != source_pair["evidence_source_id"]
+            ):
+                raise ValueError(
+                    "Article idea and evidence belong to different "
+                    "source documents"
+                )
+
+            # Insert the link, or keep the existing link unchanged.
+            cursor.execute(
+                sql,
+                (
+                    article_idea_id,
+                    source_evidence_id,
+                    relation_type,
+                    explanation,
+                ),
+            )
+
+        connection.commit()
+
+    except Exception:
+        connection.rollback()
+        raise
+
+    finally:
+        connection.close()
+

@@ -226,3 +226,182 @@ def test_save_journalist_review_same_values_again(monkeypatch):
     connection.commit.assert_called_once()
     connection.rollback.assert_not_called()
     connection.close.assert_called_once()
+
+def test_link_article_evidence_success(monkeypatch):
+    """An article idea can be linked to source evidence."""
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+
+    cursor.fetchone.return_value = {
+        "idea_source_id": 3,
+        "evidence_source_id": 3,
+    }
+
+    monkeypatch.setattr(
+        idea_repository,
+        "get_connection",
+        lambda: connection,
+    )
+
+    idea_repository.link_article_evidence(
+        article_idea_id=1,
+        source_evidence_id=2,
+        relation_type="CONTEXT",
+        explanation="Deletion count provides policy context",
+    )
+
+
+    assert cursor.execute.call_count == 2
+
+    select_sql, select_values = (
+        cursor.execute.call_args_list[0].args
+    )
+    insert_sql, insert_values = (
+        cursor.execute.call_args_list[1].args
+    )
+
+    assert "SELECT" in select_sql
+    assert "analysis_runs" in select_sql
+    assert "source_evidence" in select_sql
+    assert select_values == (1, 2)
+
+    assert "INSERT INTO article_evidence" in insert_sql
+    assert insert_values == (
+        1,
+        2,
+        "CONTEXT",
+        "Deletion count provides policy context",
+    )
+
+
+    connection.commit.assert_called_once()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once()
+
+
+def test_link_article_evidence_invalid_input(monkeypatch):
+    """Invalid evidence links are rejected before connecting."""
+    connection = MagicMock()
+
+    monkeypatch.setattr(
+        idea_repository,
+        "get_connection",
+        lambda: connection,
+    )
+
+    invalid_cases = [
+        (0, 2, "CONTEXT", "Valid explanation"),
+        (1, 0, "CONTEXT", "Valid explanation"),
+        (1, 2, "INVALID", "Valid explanation"),
+        (1, 2, "CONTEXT", "   "),
+    ]
+
+    for idea_id, evidence_id, relation, explanation in invalid_cases:
+        with pytest.raises(ValueError):
+            idea_repository.link_article_evidence(
+                article_idea_id=idea_id,
+                source_evidence_id=evidence_id,
+                relation_type=relation,
+                explanation=explanation,
+            )
+
+    connection.cursor.assert_not_called()
+
+
+def test_link_article_evidence_rollback(monkeypatch):
+    """Database errors must roll back the evidence link."""
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+    cursor.execute.side_effect = RuntimeError("DB error")
+
+    monkeypatch.setattr(
+        idea_repository,
+        "get_connection",
+        lambda: connection,
+    )
+
+    with pytest.raises(RuntimeError, match="DB error"):
+        idea_repository.link_article_evidence(
+            article_idea_id=1,
+            source_evidence_id=2,
+            relation_type="SUPPORTS",
+            explanation="Source directly states the policy action",
+        )
+
+    connection.commit.assert_not_called()
+    connection.rollback.assert_called_once()
+    connection.close.assert_called_once()
+
+
+def test_link_article_evidence_rejects_different_source(monkeypatch):
+    """Evidence from another source document must be rejected."""
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+
+    # The article idea belongs to source document 3,
+    # but the evidence belongs to source document 4.
+    cursor.fetchone.return_value = {
+        "idea_source_id": 3,
+        "evidence_source_id": 4,
+    }
+
+    monkeypatch.setattr(
+        idea_repository,
+        "get_connection",
+        lambda: connection,
+    )
+
+    with pytest.raises(ValueError, match="source document"):
+        idea_repository.link_article_evidence(
+            article_idea_id=1,
+            source_evidence_id=2,
+            relation_type="CONTEXT",
+            explanation="Policy context",
+        )
+
+    connection.commit.assert_not_called()
+    connection.rollback.assert_called_once()
+    connection.close.assert_called_once()
+
+
+def test_link_article_evidence_duplicate_keeps_existing(monkeypatch):
+    """A duplicate link must preserve the existing relationship."""
+    connection = MagicMock()
+    cursor = connection.cursor.return_value.__enter__.return_value
+
+    cursor.fetchone.return_value = {
+        "idea_source_id": 3,
+        "evidence_source_id": 3,
+    }
+
+    monkeypatch.setattr(
+        idea_repository,
+        "get_connection",
+        lambda: connection,
+    )
+
+    idea_repository.link_article_evidence(
+        article_idea_id=1,
+        source_evidence_id=2,
+        relation_type="SUPPORTS",
+        explanation="New explanation should not overwrite old one",
+    )
+
+    assert cursor.execute.call_count == 2
+
+    select_sql, select_values = cursor.execute.call_args_list[0].args
+    insert_sql, insert_values = cursor.execute.call_args_list[1].args
+
+    assert select_values == (1, 2)
+    assert "ON DUPLICATE KEY UPDATE" in insert_sql
+    assert "article_idea_id = article_idea_id" in insert_sql
+    assert insert_values == (
+        1,
+        2,
+        "SUPPORTS",
+        "New explanation should not overwrite old one",
+    )
+
+    connection.commit.assert_called_once()
+    connection.rollback.assert_not_called()
+    connection.close.assert_called_once()

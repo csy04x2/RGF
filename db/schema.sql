@@ -25,6 +25,11 @@ CREATE TABLE IF NOT EXISTS source_evidence (
  content_hash CHAR(64),
  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
  INDEX idx_evidence_document (source_document_id),
+ UNIQUE KEY uq_source_evidence_identity (
+     source_document_id,
+     location_label,
+     content_hash
+ ),
  CONSTRAINT fk_evidence_document FOREIGN KEY (source_document_id) REFERENCES source_documents(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 

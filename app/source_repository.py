@@ -1,4 +1,4 @@
-
+import hashlib
 from app.database import get_connection
 
 
@@ -86,3 +86,67 @@ def get_source_document(document_id):
         if cursor is not None:
             cursor.close()
         conn.close()
+
+
+
+
+def save_source_evidence(
+    source_document_id: int,
+    page_number: int,
+    content: str,
+) -> int:
+    """Save evidence or reuse the ID of an identical record."""
+
+    if source_document_id <= 0:
+        raise ValueError("Invalid source document ID")
+
+    if page_number <= 0:
+        raise ValueError("Invalid PDF page number")
+
+    if not content.strip():
+        raise ValueError("Evidence content cannot be empty")
+
+    content_hash = hashlib.sha256(
+        content.encode("utf-8")
+    ).hexdigest()
+
+    location_label = f"PDF {page_number}"
+
+    sql = """
+        INSERT INTO source_evidence (
+            source_document_id,
+            evidence_type,
+            location_label,
+            content,
+            content_hash
+        )
+        VALUES (%s, 'PARAGRAPH', %s, %s, %s)
+        ON DUPLICATE KEY UPDATE
+            id = LAST_INSERT_ID(id)
+    """
+
+    connection = get_connection()
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                sql,
+                (
+                    source_document_id,
+                    location_label,
+                    content,
+                    content_hash,
+                ),
+            )
+
+            evidence_id = cursor.lastrowid
+
+        connection.commit()
+        return evidence_id
+
+    except Exception:
+        connection.rollback()
+        raise
+
+    finally:
+        connection.close()
