@@ -66,7 +66,7 @@ def test_web_pdf_analysis_flow(monkeypatch, tmp_path):
     )
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/review?run_id=10"
+    assert response.headers["location"] == "/workspace/10"
 
     register.assert_called_once()
     assert register.call_args.kwargs["title"] == "Test policy document"

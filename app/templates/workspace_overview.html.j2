@@ -1,0 +1,70 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>분석 개요 | RGF</title><style>
+    :root{font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;color:#2b2521;background:#f7f1eb;font-synthesis:none}
+    *{box-sizing:border-box} body{margin:0} button,input,select,textarea{font:inherit} a{color:inherit;text-decoration:none}
+    button{cursor:pointer} button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #f6a168;outline-offset:2px}
+    .shell{display:grid;grid-template-columns:244px minmax(0,1fr);min-height:100vh}
+    .sidebar{background:#fffcf9;border-right:1px solid #e7dcd3;padding:25px 18px;display:flex;flex-direction:column;gap:28px}
+    .brand{display:flex;align-items:center;gap:12px;font-size:26px;font-weight:850;letter-spacing:-1px}
+    .logo{display:grid;place-items:center;width:42px;height:42px;background:#e76929;color:white;border-radius:11px;font-weight:850}
+    .brand small{display:block;font-size:9px;font-weight:700;letter-spacing:1.1px;color:#8c796b}
+    .new{background:#e76b2b;color:#fff;text-align:center;padding:13px 10px;border-radius:9px;font-weight:750}
+    .nav-title,.eyebrow{font-size:10px;font-weight:850;letter-spacing:1.6px;color:#b75b2f}
+    .nav-title{color:#8f7e74;margin:0 10px 10px}
+    .nav a{display:block;padding:11px 13px;border-radius:9px;font-size:14px;margin-bottom:3px}
+    .nav a.current{background:#fbe8db;color:#b7501b;font-weight:750}
+    .muted{color:#82746a}.sidebar-foot{font-size:12px;color:#9b8879;margin-top:auto;border-top:1px solid #eadfd7;padding-top:18px}
+    main{padding:30px clamp(18px,3vw,52px) 60px;min-width:0}
+    .back{font-size:13px;color:#817166}.top h1{font-size:clamp(24px,2.6vw,34px);letter-spacing:-1.4px;margin:11px 0 7px}
+    .meta{font-size:13px;color:#87766b}.page-tabs{border-bottom:1px solid #e4d8cd;display:flex;gap:26px;margin:29px 0 20px;padding-bottom:12px;flex-wrap:wrap}
+    .page-tabs a{font-size:14px;padding:0 0 12px}.page-tabs a.current{font-weight:800;color:#c45419;border-bottom:3px solid #e76b2b;margin-bottom:-15px}
+    .workspace{display:grid;grid-template-columns:minmax(265px,.84fr) minmax(0,1.36fr);gap:16px;align-items:start}
+    .panel{background:#fff;border:1px solid #eee1d6;border-radius:14px;box-shadow:0 3px 12px #5c352509;padding:20px;min-width:0}
+    .panel h2{font-size:20px;letter-spacing:-.7px;margin:0 0 6px}.subtitle{font-size:13px;color:#82746a;margin:0 0 19px}
+    .filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+    .filter{border:1px solid #e6dacf;border-radius:7px;background:#fff;padding:8px 11px;font-size:12px;color:#514137}
+    .filter.active{background:#e76b2b;color:white;border-color:#e76b2b}
+    .idea-list{max-height:68vh;overflow:auto;padding-right:3px}.idea-button{width:100%;text-align:left;border:0;border-bottom:1px solid #eee2da;background:#fff;display:flex;align-items:start;gap:10px;padding:14px 9px;border-radius:7px;color:#332923}
+    .idea-button[aria-selected="true"]{background:#fcebe0}.id-chip{font-size:12px;color:#b75b2f;background:#fff4ed;border-radius:6px;padding:5px 7px;font-weight:800;flex-shrink:0}
+    .idea-text{flex:1;min-width:0}.idea-text strong{display:block;font-size:13px;line-height:1.5}.idea-text span{display:block;color:#88766c;font-size:11px;margin-top:3px}
+    .status{font-size:11px;background:#f5f1ec;border-radius:999px;padding:5px 9px;color:#736255;white-space:nowrap}
+    .detail[hidden],.idea-button[hidden]{display:none!important}
+    .detail-head{display:flex;gap:13px;align-items:flex-start}.detail-head .id-chip{font-size:16px;color:white;background:#e76b2b;padding:10px}
+    .detail-head h2{font-size:clamp(19px,2vw,25px);line-height:1.35;margin:5px 0 9px}
+    .detail-head .status{margin-left:auto}.summary{font-size:14px;line-height:1.8;color:#6d5d53;margin:17px 0 23px}
+    .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.info-card{border:1px solid #eadbd0;border-radius:10px;padding:17px;background:#fffdfb}
+    .info-card h3{color:#b9541e;font-size:14px;margin:0 0 11px}.info-card p{font-size:13px;line-height:1.8;margin:0;overflow-wrap:anywhere}
+    .info-card ul{padding-left:19px;margin:0;font-size:13px;line-height:1.8}.info-card li+li{margin-top:7px}
+    .evidence{margin-top:15px;background:#fcf1e8;border-radius:10px;padding:17px}.evidence h3{color:#a64d20;font-size:14px;margin:0 0 12px}
+    .quote{background:#fff9f4;border:1px solid #eddfd4;padding:12px;border-radius:7px;margin-top:10px;font-size:13px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
+    .quote small{display:block;color:#927e71;margin:0 0 6px}.warning{font-size:12px;color:#8d5d43;line-height:1.7;margin:12px 0 0}
+    .review-form{margin-top:18px;border-top:1px solid #ebdfd5;padding-top:20px}.review-form h3{font-size:17px;margin:0 0 15px}
+    .fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}.review-form label{font-size:13px;font-weight:650;display:block;margin-bottom:12px}
+    .review-form input,.review-form select,.review-form textarea{display:block;width:100%;border:1px solid #ddcec2;border-radius:7px;background:#fff;padding:10px;margin-top:7px;font-weight:400;color:#29221e}
+    .review-form textarea{min-height:88px;resize:vertical}.save{background:#e76b2b;color:white;border:0;border-radius:7px;padding:11px 20px;font-weight:750}
+    .empty{padding:35px 10px;color:#807269;font-size:14px;line-height:1.7}.help{font-size:12px;color:#8f7d72}
+    @media(max-width:1080px){.shell{grid-template-columns:200px minmax(0,1fr)}.workspace{grid-template-columns:1fr}.idea-list{max-height:290px}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:650px){.shell{display:block}.sidebar{padding:12px 16px;gap:12px}.sidebar .nav,.sidebar-foot{display:none}.brand{font-size:21px}.new{padding:9px}.top h1{font-size:24px}main{padding:20px 14px}.page-tabs{gap:15px}.cards,.fields{grid-template-columns:1fr}.detail-head{flex-wrap:wrap}}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}.stat{background:white;border:1px solid #eee1d6;border-radius:12px;padding:22px}.stat strong{display:block;font-size:30px;margin:10px 0}.overview-section{margin-bottom:18px}.overview-list{display:grid;gap:11px}.overview-item{border:1px solid #eadbd0;border-radius:9px;padding:15px;background:#fffdfb}.overview-item h3{font-size:15px;margin:5px 0}.overview-item p{font-size:13px;color:#65564d;line-height:1.8;white-space:pre-wrap;margin:8px 0 0}@media(max-width:780px){.stats{grid-template-columns:1fr}}</style></head><body><div class="shell">
+<aside class="sidebar" aria-label="기본 탐색">
+<div class="brand"><span class="logo">R</span><div>RGF<small>REPORTING GAP FINDER</small></div></div>
+<a href="/" class="new">＋ 새 자료 분석</a>
+<nav class="nav" aria-label="작업 메뉴"><p class="nav-title">WORKSPACE</p>
+<a class="current" aria-current="page" href="/workspace/{{ run_id }}">▦ 분석 개요</a>
+<a href="/review?run_id={{ run_id }}">◉ 취재 아이디어</a>
+<a href="/analysis/{{ run_id }}">▤ 전체 분석 원문</a>
+<a href="/review?run_id={{ run_id }}">☑ 기자 검토</a>
+</nav><div class="sidebar-foot">RGF v0.1<br>AI 분석 결과는 취재 제안이며 최종 판단은 기자가 수행합니다.</div></aside>
+<main><header class="top"><a href="/" class="back">← 새 자료 분석</a>
+<div class="eyebrow" style="margin-top:18px">ANALYSIS OVERVIEW</div>
+<h1>{{ source.title }}</h1><div class="meta">{{ source.organization or '발표 기관 미입력' }} · 분석 #{{ run_id }} · 저장일 {{ source.completed_at.strftime('%Y.%m.%d') if source.completed_at else '미확인' }}</div></header>
+<nav class="page-tabs" aria-label="분석 화면"><a class="current" aria-current="page" href="/workspace/{{ run_id }}">분석 개요</a><a href="/review?run_id={{ run_id }}">취재 아이디어 {{ idea_count }}</a><a href="/analysis/{{ run_id }}">전체 분석 원문</a></nav>
+<section class="stats" aria-label="분석 요약 수치"><div class="stat"><div class="eyebrow">REPORTING LEADS</div><strong>{{ idea_count }}</strong><span class="muted">취재 아이디어</span></div><div class="stat"><div class="eyebrow">SOURCE GAPS</div><strong>{{ gaps|length }}</strong><span class="muted">자료 내 정보 공백</span></div><div class="stat"><div class="eyebrow">MATERIAL CHANGES</div><strong>{{ changes|length }}</strong><span class="muted">주요 정책 변화</span></div></section>
+<section class="panel overview-section"><div class="eyebrow">DISCOVERY SUMMARY</div><h2 style="margin-top:8px">핵심 분석 요약</h2><p style="font-size:14px;line-height:1.85;white-space:pre-wrap">{{ analysis.discovery_summary }}</p></section>
+<section class="panel overview-section"><div class="eyebrow">POLICY CHANGES</div><h2 style="margin:8px 0 15px">주요 정책 변화</h2><div class="overview-list">
+{% for change in changes %}<article class="overview-item"><div class="eyebrow">{{ change.id }} · {{ change.implementation_status }}</div><h3>{{ change.change }}</h3><p>이전: {{ change.before }}
+이후: {{ change.after }}</p>{% if change.unknown %}<p>추가 확인: {{ change.unknown }}</p>{% endif %}</article>{% else %}<p class="muted">분석된 정책 변화가 없습니다.</p>{% endfor %}
+</div></section>
+<section class="panel overview-section"><div class="eyebrow">SOURCE GAPS</div><h2 style="margin:8px 0 8px">원문에서 발견한 정보 공백</h2><p class="subtitle">저장된 자료 구조화 결과입니다. 외부 취재를 통해 검증된 사실은 아닙니다.</p><div class="overview-list">
+{% for gap in gaps %}<article class="overview-item"><div class="eyebrow">{{ gap.id }} · {{ gap.gap_type.value }}</div><h3>{{ gap.missing_information }}</h3><p>{{ gap.why_it_matters }}</p></article>{% else %}<p class="muted">저장된 정보 공백이 없습니다.</p>{% endfor %}
+</div></section><p class="help">AI 분석은 취재 출발점이며 최종 사실 판단은 기자가 수행합니다.</p>
+</main></div></body></html>

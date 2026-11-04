@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>취재 아이디어 | RGF</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;color:#2b2521;background:#f7f1eb;font-synthesis:none}
+    *{box-sizing:border-box} body{margin:0} button,input,select,textarea{font:inherit} a{color:inherit;text-decoration:none}
+    button{cursor:pointer} button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #f6a168;outline-offset:2px}
+    .shell{display:grid;grid-template-columns:244px minmax(0,1fr);min-height:100vh}
+    .sidebar{background:#fffcf9;border-right:1px solid #e7dcd3;padding:25px 18px;display:flex;flex-direction:column;gap:28px}
+    .brand{display:flex;align-items:center;gap:12px;font-size:26px;font-weight:850;letter-spacing:-1px}
+    .logo{display:grid;place-items:center;width:42px;height:42px;background:#e76929;color:white;border-radius:11px;font-weight:850}
+    .brand small{display:block;font-size:9px;font-weight:700;letter-spacing:1.1px;color:#8c796b}
+    .new{background:#e76b2b;color:#fff;text-align:center;padding:13px 10px;border-radius:9px;font-weight:750}
+    .nav-title,.eyebrow{font-size:10px;font-weight:850;letter-spacing:1.6px;color:#b75b2f}
+    .nav-title{color:#8f7e74;margin:0 10px 10px}
+    .nav a{display:block;padding:11px 13px;border-radius:9px;font-size:14px;margin-bottom:3px}
+    .nav a.current{background:#fbe8db;color:#b7501b;font-weight:750}
+    .muted{color:#82746a}.sidebar-foot{font-size:12px;color:#9b8879;margin-top:auto;border-top:1px solid #eadfd7;padding-top:18px}
+    main{padding:30px clamp(18px,3vw,52px) 60px;min-width:0}
+    .back{font-size:13px;color:#817166}.top h1{font-size:clamp(24px,2.6vw,34px);letter-spacing:-1.4px;margin:11px 0 7px}
+    .meta{font-size:13px;color:#87766b}.page-tabs{border-bottom:1px solid #e4d8cd;display:flex;gap:26px;margin:29px 0 20px;padding-bottom:12px;flex-wrap:wrap}
+    .page-tabs a{font-size:14px;padding:0 0 12px}.page-tabs a.current{font-weight:800;color:#c45419;border-bottom:3px solid #e76b2b;margin-bottom:-15px}
+    .workspace{display:grid;grid-template-columns:minmax(265px,.84fr) minmax(0,1.36fr);gap:16px;align-items:start}
+    .panel{background:#fff;border:1px solid #eee1d6;border-radius:14px;box-shadow:0 3px 12px #5c352509;padding:20px;min-width:0}
+    .panel h2{font-size:20px;letter-spacing:-.7px;margin:0 0 6px}.subtitle{font-size:13px;color:#82746a;margin:0 0 19px}
+    .filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+    .filter{border:1px solid #e6dacf;border-radius:7px;background:#fff;padding:8px 11px;font-size:12px;color:#514137}
+    .filter.active{background:#e76b2b;color:white;border-color:#e76b2b}
+    .idea-list{max-height:68vh;overflow:auto;padding-right:3px}.idea-button{width:100%;text-align:left;border:0;border-bottom:1px solid #eee2da;background:#fff;display:flex;align-items:start;gap:10px;padding:14px 9px;border-radius:7px;color:#332923}
+    .idea-button[aria-selected="true"]{background:#fcebe0}.id-chip{font-size:12px;color:#b75b2f;background:#fff4ed;border-radius:6px;padding:5px 7px;font-weight:800;flex-shrink:0}
+    .idea-text{flex:1;min-width:0}.idea-text strong{display:block;font-size:13px;line-height:1.5}.idea-text span{display:block;color:#88766c;font-size:11px;margin-top:3px}
+    .status{font-size:11px;background:#f5f1ec;border-radius:999px;padding:5px 9px;color:#736255;white-space:nowrap}
+    .detail[hidden],.idea-button[hidden]{display:none!important}
+    .detail-head{display:flex;gap:13px;align-items:flex-start}.detail-head .id-chip{font-size:16px;color:white;background:#e76b2b;padding:10px}
+    .detail-head h2{font-size:clamp(19px,2vw,25px);line-height:1.35;margin:5px 0 9px}
+    .detail-head .status{margin-left:auto}.summary{font-size:14px;line-height:1.8;color:#6d5d53;margin:17px 0 23px}
+    .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.info-card{border:1px solid #eadbd0;border-radius:10px;padding:17px;background:#fffdfb}
+    .info-card h3{color:#b9541e;font-size:14px;margin:0 0 11px}.info-card p{font-size:13px;line-height:1.8;margin:0;overflow-wrap:anywhere}
+    .info-card ul{padding-left:19px;margin:0;font-size:13px;line-height:1.8}.info-card li+li{margin-top:7px}
+    .evidence{margin-top:15px;background:#fcf1e8;border-radius:10px;padding:17px}.evidence h3{color:#a64d20;font-size:14px;margin:0 0 12px}
+    .quote{background:#fff9f4;border:1px solid #eddfd4;padding:12px;border-radius:7px;margin-top:10px;font-size:13px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
+    .quote small{display:block;color:#927e71;margin:0 0 6px}.warning{font-size:12px;color:#8d5d43;line-height:1.7;margin:12px 0 0}
+    .review-form{margin-top:18px;border-top:1px solid #ebdfd5;padding-top:20px}.review-form h3{font-size:17px;margin:0 0 15px}
+    .fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}.review-form label{font-size:13px;font-weight:650;display:block;margin-bottom:12px}
+    .review-form input,.review-form select,.review-form textarea{display:block;width:100%;border:1px solid #ddcec2;border-radius:7px;background:#fff;padding:10px;margin-top:7px;font-weight:400;color:#29221e}
+    .review-form textarea{min-height:88px;resize:vertical}.save{background:#e76b2b;color:white;border:0;border-radius:7px;padding:11px 20px;font-weight:750}
+    .empty{padding:35px 10px;color:#807269;font-size:14px;line-height:1.7}.help{font-size:12px;color:#8f7d72}
+    @media(max-width:1080px){.shell{grid-template-columns:200px minmax(0,1fr)}.workspace{grid-template-columns:1fr}.idea-list{max-height:290px}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:650px){.shell{display:block}.sidebar{padding:12px 16px;gap:12px}.sidebar .nav,.sidebar-foot{display:none}.brand{font-size:21px}.new{padding:9px}.top h1{font-size:24px}main{padding:20px 14px}.page-tabs{gap:15px}.cards,.fields{grid-template-columns:1fr}.detail-head{flex-wrap:wrap}}
+  </style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar" aria-label="기본 탐색">
+    <div class="brand"><span class="logo">R</span><div>RGF<small>REPORTING GAP FINDER</small></div></div>
+    <a href="/" class="new">＋ 새 자료 분석</a>
+    <nav class="nav" aria-label="작업 메뉴">
+      <p class="nav-title">WORKSPACE</p>
+      <a href="/workspace/{{ run_id }}">▦ 분석 개요</a>
+      <a href="/analysis/{{ run_id }}">▤ 전체 분석 원문</a>
+      <a href="/review?run_id={{ run_id }}" class="current" aria-current="page">◉ 취재 아이디어</a>
+      <a href="#review-area" id="review-nav">☑ 기자 검토</a>
+    </nav>
+    <div class="sidebar-foot">RGF v0.1<br>AI 분석 결과는 취재 제안이며 최종 판단은 기자가 수행합니다.</div>
+  </aside>
+  <main>
+    <header class="top">
+      <a href="/" class="back">← 새 자료 분석</a>
+      <div class="eyebrow" style="margin-top:18px">REPORTING WORKSPACE</div>
+      <h1>{{ source.title }}</h1>
+      <div class="meta">{{ source.organization or "발표 기관 미입력" }} · 분석 #{{ run_id }} · 취재 아이디어 {{ ideas|length }}건</div>
+    </header>
+    <nav class="page-tabs" aria-label="분석 화면">
+      <a href="/workspace/{{ run_id }}">분석 개요</a>
+      <a href="/analysis/{{ run_id }}">전체 분석 원문</a>
+      <a href="/review?run_id={{ run_id }}" class="current" aria-current="page">취재 아이디어 <strong>{{ ideas|length }}</strong></a>
+    </nav>
+    <div class="workspace">
+      <section class="panel" aria-label="취재 아이디어 목록">
+        <h2>취재 아이디어 목록</h2>
+        <p class="subtitle">AI가 발견한 추가 취재 과제 {{ ideas|length }}건</p>
+        <div class="filters" role="group" aria-label="검토 상태 필터">
+          <button type="button" class="filter active" data-filter="all" aria-pressed="true">전체 {{ ideas|length }}</button>
+          {% for st in ['검토대기', '승인', '보류'] %}<button type="button" class="filter" data-filter="{{ st }}" aria-pressed="false">{{ st }} {{ ideas|selectattr('review_status','equalto',st)|list|length }}</button>{% endfor %}
+        </div>
+        <div class="idea-list" role="listbox" aria-label="아이디어 선택" id="idea-list">
+          {% for idea in ideas %}
+          <button type="button" class="idea-button" role="option" data-id="{{ idea.id }}" data-status="{{ idea.review_status }}" aria-selected="{{ 'true' if loop.first else 'false' }}" aria-controls="detail-{{ idea.id }}">
+            <span class="id-chip">{{ idea.lead_id }}</span>
+            <span class="idea-text"><strong>{{ idea.title }}</strong><span>우선순위 {{ idea.priority }}</span></span>
+            <span class="status">{{ idea.review_status }}</span>
+          </button>
+          {% else %}
+          <div class="empty">이 분석 실행에 저장된 아이디어가 없습니다.</div>
+          {% endfor %}
+        </div>
+        <p class="help" id="filter-empty" hidden>해당 상태의 아이디어가 없습니다.</p>
+      </section>
+      <section class="panel" aria-label="선택한 취재 아이디어 상세" id="details">
+        {% for idea in ideas %}
+        <article class="detail" id="detail-{{ idea.id }}" data-detail-id="{{ idea.id }}" {% if not loop.first %}hidden{% endif %}>
+          <div class="detail-head">
+            <span class="id-chip">{{ idea.lead_id }}</span>
+            <div><div class="eyebrow">REPORTING LEAD · 우선순위 {{ idea.priority }}</div><h2>{{ idea.title }}</h2></div>
+            <span class="status">{{ idea.review_status }}</span>
+          </div>
+          <p class="summary">{{ idea.angle }}</p>
+          <div class="cards">
+            <section class="info-card"><h3>◎ 기사 방향</h3><p>{{ idea.angle }}</p></section>
+            <section class="info-card"><h3>◇ 취재 가치</h3><p>{{ idea.why_it_matters }}</p></section>
+            <section class="info-card"><h3>？ 추가 취재 질문</h3>
+              {% if idea.get('reporting_question') %}<p>{{ idea.reporting_question }}</p>
+              {% else %}<p class="muted">저장된 취재 질문을 확인할 수 없습니다.</p>{% endif %}
+            </section>
+            <section class="info-card"><h3>▤ 확인해야 할 자료·증거</h3>
+              {% if idea.get('evidence_needed') %}<ul>{% for item in idea.evidence_needed %}<li>{{ item }}</li>{% endfor %}</ul>
+              {% else %}<p class="muted">저장된 추가 증거 항목을 확인할 수 없습니다.</p>{% endif %}
+            </section>
+          </div>
+          <section class="evidence" aria-label="원문 근거">
+            <h3>▤ 연결된 원문 근거 {{ evidence[idea.id]|length }}건</h3>
+            {% if evidence[idea.id] %}
+              {% for item in evidence[idea.id] %}
+              <div class="quote"><small>{{ item.location_label }} · 연결 유형 {{ item.relation_type }}</small>{{ item.content }}{% if item.explanation %}<small style="margin-top:10px">{{ item.explanation }}</small>{% endif %}</div>
+              {% endfor %}
+              <p class="warning">※ CONTEXT는 원문 문구가 일치한다는 의미입니다. 이 인용이 취재 아이디어를 실제로 뒷받침하는지는 검증되지 않았습니다.</p>
+            {% else %}
+              <p class="warning">아직 DB에 연결된 원문 근거가 없습니다. 근거가 확인된 것으로 간주하지 마세요.</p>
+            {% endif %}
+          </section>
+          <form class="review-form" method="post" action="/review" id="review-area-{{ idea.id }}">
+            <h3>기자 검토 및 저장</h3>
+            <input type="hidden" name="run_id" value="{{ run_id }}"><input type="hidden" name="lead_id" value="{{ idea.lead_id }}">
+            <div class="fields">
+              <label>기자 이름<input name="reviewer" maxlength="255" required value="{{ idea.reviewer or '' }}" autocomplete="name"></label>
+              <label>검토 상태<select name="status" required>{% for status in ['검토대기','승인','보류'] %}<option value="{{ status }}" {% if status == idea.review_status %}selected{% endif %}>{{ status }}</option>{% endfor %}</select></label>
+            </div>
+            <label>검토 메모<textarea name="review_note" rows="3" placeholder="승인 근거 또는 보류 사유를 기록하세요.">{{ idea.review_note or '' }}</textarea></label>
+            <p class="help">보류할 때는 사유를 반드시 입력해야 합니다.</p>
+            <button type="submit" class="save">검토 결과 저장</button>
+          </form>
+        </article>
+        {% else %}
+        <div class="empty">선택할 아이디어가 없습니다. 다른 분석 결과를 확인하거나 새 자료를 분석하세요.</div>
+        {% endfor %}
+      </section>
+    </div>
+  </main>
+</div>
+<script>
+(function(){
+  const buttons=[...document.querySelectorAll('.idea-button')];
+  const details=[...document.querySelectorAll('.detail')];
+  const filters=[...document.querySelectorAll('.filter')];
+  let filter='all';
+  function select(btn){
+    buttons.forEach(b=>b.setAttribute('aria-selected',String(b===btn)));
+    details.forEach(d=>d.hidden=(!btn||d.dataset.detailId!==btn.dataset.id));
+  }
+  function applyFilter(next){
+    filter=next;
+    filters.forEach(b=>{const current=b.dataset.filter===filter;b.classList.toggle('active',current);b.setAttribute('aria-pressed',String(current));});
+    buttons.forEach(b=>b.hidden=filter!=='all'&&b.dataset.status!==filter);
+    const active=buttons.find(b=>b.getAttribute('aria-selected')==='true'&&!b.hidden);
+    const first=buttons.find(b=>!b.hidden);
+    select(active||first);
+    document.getElementById('filter-empty').hidden=!!first;
+  }
+  buttons.forEach(b=>b.addEventListener('click',()=>select(b)));
+  filters.forEach(b=>b.addEventListener('click',()=>applyFilter(b.dataset.filter)));
+  const nav=document.getElementById('review-nav');
+  if(nav)nav.addEventListener('click',e=>{e.preventDefault();const active=details.find(d=>!d.hidden);active?.querySelector('.review-form')?.scrollIntoView({behavior:'smooth',block:'start'});});
+  document.querySelectorAll('.review-form').forEach(form=>form.addEventListener('submit',e=>{
+    const status=form.querySelector('[name="status"]').value;
+    const note=form.querySelector('[name="review_note"]').value.trim();
+    if(status==='보류'&&!note){e.preventDefault();alert('보류 사유를 입력해 주세요.');form.querySelector('[name="review_note"]').focus();}
+  }));
+  applyFilter('all');
+})();
+</script>
+</body>
+</html>

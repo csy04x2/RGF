@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>새 정책자료 분석 | RGF</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;background:#f7f1eb;color:#2b2521;font-synthesis:none}
+*{box-sizing:border-box}body{margin:0}a{color:inherit;text-decoration:none}input,button{font:inherit}a:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid #ffab79;outline-offset:3px}
+.shell{display:grid;grid-template-columns:244px minmax(0,1fr);min-height:100vh}
+.sidebar{background:#fffcf9;border-right:1px solid #e7dcd3;padding:25px 18px;display:flex;flex-direction:column;gap:28px}
+.brand{display:flex;align-items:center;gap:12px;font-size:26px;font-weight:850;letter-spacing:-1px}.brand small{display:block;font-size:9px;letter-spacing:1.1px;color:#8c796b;font-weight:700}
+.logo{display:grid;place-items:center;width:42px;height:42px;background:#e76929;color:white;border-radius:11px;font-weight:850}
+.new{background:#e76b2b;color:#fff;text-align:center;padding:13px 10px;border-radius:9px;font-weight:750}
+.nav-title,.eyebrow{font-size:10px;font-weight:850;letter-spacing:1.6px;color:#b75b2f}.nav-title{color:#8f7e74;margin:0 10px 10px}
+.nav a{display:block;padding:11px 13px;border-radius:9px;font-size:14px;margin-bottom:3px}.nav a.current{background:#fbe8db;color:#b7501b;font-weight:750}
+.sidebar-foot{font-size:12px;color:#9b8879;margin-top:auto;border-top:1px solid #eadfd7;padding-top:18px}
+main{padding:48px clamp(20px,5vw,72px);min-width:0;max-width:1050px;width:100%;margin:0 auto}
+.eyebrow{margin-bottom:10px}h1{font-size:clamp(29px,3vw,39px);letter-spacing:-1.4px;margin:0 0 12px} .intro{color:#76655a;font-size:15px;line-height:1.75;margin:0 0 29px}
+.panel{background:#fff;border:1px solid #eee1d6;border-radius:14px;box-shadow:0 3px 12px #5c352509;padding:30px;min-width:0}
+.panel h2{margin:0 0 7px;font-size:21px}.subtitle{color:#877469;margin:0 0 22px;font-size:13px}
+label{display:block;font-size:14px;font-weight:700;margin-top:20px}label:first-of-type{margin-top:0}
+input{display:block;width:100%;border:1px solid #dccdc1;padding:13px;border-radius:9px;margin-top:9px;background:#fff;color:#332a24}
+input[type=file]{cursor:pointer;background:#fffbf7;border-style:dashed;padding:22px 14px}
+.hint{font-size:12px;color:#8a786b;font-weight:400;margin:7px 0 0}
+button{margin-top:25px;border:0;background:#e76b2b;color:#fff;border-radius:9px;padding:13px 24px;font-weight:750;cursor:pointer}
+.notice{margin-top:18px;border-radius:9px;background:#fcf2e9;padding:17px;color:#80563e;font-size:13px;line-height:1.8}
+.notice strong{display:block;color:#a64d20;margin-bottom:3px}.muted{color:#8b7c70}.footer{margin-top:25px;color:#8b7c70;font-size:12px}
+@media(max-width:700px){.shell{display:block}.sidebar{padding:12px 16px;gap:12px}.sidebar .nav,.sidebar-foot{display:none}.brand{font-size:21px}.new{padding:9px}main{padding:30px 16px}.panel{padding:20px}}
+</style>
+</head>
+<body>
+<div class="shell">
+ <aside class="sidebar" aria-label="기본 탐색">
+  <div class="brand"><span class="logo">R</span><div>RGF<small>REPORTING GAP FINDER</small></div></div>
+  <a href="/" class="new" aria-current="page">＋ 새 자료 분석</a>
+  <nav class="nav" aria-label="작업 메뉴"><p class="nav-title">WORKSPACE</p><a href="/" class="current" aria-current="page">▤ 자료 등록</a></nav>
+  <div class="sidebar-foot">RGF v0.1<br>AI 분석 결과는 취재 제안이며 최종 판단은 기자가 수행합니다.</div>
+ </aside>
+ <main>
+  <div class="eyebrow">NEW REPORTING ANALYSIS</div>
+  <h1>정책자료 분석하기</h1>
+  <p class="intro">정부 보도자료와 정책자료에서 빠진 정보, 추가로 확인해야 할 쟁점과 취재 질문을 찾아냅니다.</p>
+  <section class="panel" aria-label="정책자료 등록">
+   <h2>새 자료 등록</h2>
+   <p class="subtitle">PDF 문서를 선택하고 기본 정보를 입력하세요.</p>
+   <form method="post" action="/analyze" enctype="multipart/form-data" id="analyze-form">
+    <label for="title">정책자료 제목</label>
+    <input type="text" name="title" id="title" maxlength="500" placeholder="예: 주택시장 안정화 대책" required>
+    <label for="organization">발표 기관 <span class="muted">(선택)</span></label>
+    <input type="text" name="organization" id="organization" maxlength="255" placeholder="예: 국토교통부">
+    <label for="file">PDF 파일</label>
+    <input type="file" name="file" id="file" accept=".pdf,application/pdf" required>
+    <p class="hint">텍스트 추출이 가능한 PDF · 최대 10MB</p>
+    <button type="submit" id="submit">AI 분석 시작 →</button>
+   </form>
+   <div class="notice"><strong>분석 실행 안내</strong>분석을 실행하면 OpenAI API 사용 요금이 발생합니다. 분석에는 시간이 걸릴 수 있으며, 완료되면 분석 개요 화면으로 이동합니다. 진행률을 표시하는 기능은 아직 없습니다.</div>
+  </section>
+  <p class="footer">RGF는 AI 분석을 바탕으로 취재 가능성을 제안합니다. 생성 결과는 검증된 사실이 아닙니다.</p>
+ </main>
+</div>
+<script>
+(function(){const form=document.getElementById('analyze-form');form.addEventListener('submit',function(){const button=document.getElementById('submit');button.disabled=true;button.textContent='분석 요청 중… 이 화면을 유지해 주세요';});})();
+</script>
+</body>
+</html>

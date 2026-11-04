@@ -1,9 +1,10 @@
+from pathlib import Path
 
 from collections import defaultdict
 
 from fastapi import FastAPI, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
-from jinja2 import Environment
+from jinja2 import Environment, FileSystemLoader
 
 from .database import get_connection
 from .idea_repository import save_journalist_review
@@ -14,120 +15,7 @@ app = FastAPI(title="RGF Journalist Review")
 
 env = Environment(autoescape=True)
 
-PAGE = env.from_string("""
-<!doctype html>
-<html lang="ko">
-<head>
-<meta charset="utf-8">
-<title>RGF 기자 검토</title>
-<style>
-body {
-    font-family: system-ui, sans-serif;
-    max-width: 900px;
-    margin: 40px auto;
-    padding: 0 20px;
-    line-height: 1.6;
-    color: #222;
-}
-article {
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 24px;
-    margin: 24px 0;
-}
-h1 { margin-bottom: 4px; }
-h2 { margin-bottom: 8px; }
-small, .muted { color: #666; }
-.evidence {
-    background: #f5f5f5;
-    padding: 12px;
-    margin: 8px 0;
-    border-radius: 6px;
-    white-space: pre-wrap;
-}
-label {
-    display: block;
-    margin: 12px 0;
-}
-input, select, textarea {
-    width: 100%;
-    box-sizing: border-box;
-    padding: 9px;
-    font: inherit;
-}
-button {
-    padding: 10px 20px;
-    cursor: pointer;
-}
-</style>
-</head>
-<body>
-<h1>RGF 기자 검토</h1>
-<p class="muted">분석 실행 ID: {{ run_id }}</p>
-<p class="muted">분석 실행 ID: {{ run_id }}</p>
-<p>AI가 생성한 취재 아이디어를 검토하고 승인하거나 보류합니다.</p>
-
-{% for idea in ideas %}
-<article>
-    <small>{{ idea.lead_id }} · 우선순위 {{ idea.priority }}</small>
-    <h2>{{ idea.title }}</h2>
-    <p><strong>기사 방향:</strong> {{ idea.angle }}</p>
-    <p><strong>취재 가치:</strong> {{ idea.why_it_matters }}</p>
-
-    <h3>원문 근거</h3>
-    {% if evidence[idea.id] %}
-        {% for item in evidence[idea.id] %}
-        <div class="evidence">
-            <strong>{{ item.location_label }}
-            · {{ item.relation_type }}</strong>
-            <p>{{ item.content }}</p>
-            <small>{{ item.explanation }}</small>
-        </div>
-        {% endfor %}
-    {% else %}
-        <p class="muted">
-            아직 DB에 연결된 원문 근거가 없습니다.
-            근거 미확인 상태로 검토해야 합니다.
-        </p>
-    {% endif %}
-
-    <h3>기자 검토</h3>
-    <p>현재 상태: <strong>{{ idea.review_status }}</strong></p>
-
-    <form method="post" action="/review">
-        <input type="hidden" name="run_id" value="{{ run_id }}">
-        <input type="hidden" name="lead_id" value="{{ idea.lead_id }}">
-
-        <label>기자 이름
-            <input name="reviewer"
-                   value="{{ idea.reviewer or '' }}"
-                   required maxlength="255">
-        </label>
-
-        <label>검토 결과
-            <select name="status">
-                {% for status in ["검토대기", "승인", "보류"] %}
-                <option value="{{ status }}"
-                    {% if status == idea.review_status %}selected{% endif %}>
-                    {{ status }}
-                </option>
-                {% endfor %}
-            </select>
-        </label>
-
-        <label>검토 메모
-            <textarea name="review_note" rows="3">{{ idea.review_note or '' }}</textarea>
-        </label>
-
-        <button type="submit">검토 결과 저장</button>
-    </form>
-</article>
-{% else %}
-<p>이 분석 실행에 등록된 취재 아이디어가 없습니다.</p>
-{% endfor %}
-</body>
-</html>
-""")
+PAGE = env.from_string((Path(__file__).resolve().parent / "templates" / "workspace_review.html.j2").read_text(encoding="utf-8"))
 
 
 def load_review_data(run_id: int):
@@ -161,6 +49,20 @@ def load_review_data(run_id: int):
                 (run_id,),
             )
             evidence_rows = cursor.fetchall()
+
+            # Reuse the analysis JSON already saved by the existing pipeline.
+            cursor.execute(
+                "SELECT analysis_json FROM analysis_runs WHERE id = %s AND status = 'COMPLETED'",
+                (run_id,),
+            )
+            analysis_row = cursor.fetchone()
+            cursor.execute(
+                """SELECT sd.title, sd.organization FROM analysis_runs ar
+                   JOIN source_documents sd ON sd.id = ar.source_document_id
+                   WHERE ar.id = %s""",
+                (run_id,),
+            )
+            source_row = cursor.fetchone()
     finally:
         connection.close()
 
@@ -168,7 +70,21 @@ def load_review_data(run_id: int):
     for item in evidence_rows:
         evidence[item["article_idea_id"]].append(item)
 
-    return ideas, evidence
+    # Add existing reporting-lead details without changing database schema.
+    if analysis_row and analysis_row.get("analysis_json") is not None:
+        saved = analysis_row["analysis_json"]
+        if isinstance(saved, (str, bytes)):
+            analysis = ReportingAnalysis.model_validate_json(saved)
+        else:
+            analysis = ReportingAnalysis.model_validate(saved)
+        by_lead_id = {lead.lead_id: lead for lead in analysis.reporting_leads}
+        for idea in ideas:
+            lead = by_lead_id.get(idea["lead_id"])
+            if lead is not None:
+                idea["reporting_question"] = lead.reporting_question
+                idea["evidence_needed"] = lead.evidence_needed
+
+    return ideas, evidence, (source_row or {"title": "분석 자료", "organization": None})
 
 
 @app.get("/review", response_class=HTMLResponse)
@@ -176,12 +92,13 @@ def review_page(run_id: int = 1):
     if run_id <= 0:
         raise HTTPException(400, "Invalid analysis run ID")
 
-    ideas, evidence = load_review_data(run_id)
+    ideas, evidence, source = load_review_data(run_id)
 
     return PAGE.render(
         run_id=run_id,
         ideas=ideas,
         evidence=evidence,
+        source=source,
     )
 
 
@@ -246,85 +163,7 @@ MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
 @app.get("/", response_class=HTMLResponse)
 def upload_page():
-    return """
-    <!doctype html>
-    <html lang="ko">
-    <head>
-        <meta charset="utf-8">
-        <title>RGF - 정책자료 분석</title>
-        <style>
-            body {
-                font-family: system-ui, sans-serif;
-                max-width: 720px;
-                margin: 50px auto;
-                padding: 0 20px;
-                line-height: 1.7;
-            }
-            label {
-                display: block;
-                margin: 20px 0;
-            }
-            input {
-                display: block;
-                width: 100%;
-                padding: 10px;
-                box-sizing: border-box;
-            }
-            button {
-                padding: 12px 24px;
-                cursor: pointer;
-            }
-            .notice {
-                background: #f5f5f5;
-                padding: 16px;
-                border-radius: 6px;
-            }
-        </style>
-    </head>
-    <body>
-        <h1>RGF — Reporting Gap Finder</h1>
-        <p>
-            정부 정책자료를 분석해 정보 공백과
-            추가 취재가 필요한 지점을 찾아냅니다.
-        </p>
-
-        <form method="post"
-              action="/analyze"
-              enctype="multipart/form-data">
-
-            <label>
-                정책자료 제목
-                <input type="text" name="title" required maxlength="500">
-            </label>
-
-            <label>
-                발표 기관 (선택)
-                <input type="text" name="organization" maxlength="255">
-            </label>
-
-            <label>
-                PDF 파일
-                <input type="file"
-                       name="file"
-                       accept=".pdf,application/pdf"
-                       required>
-            </label>
-
-            <button type="submit">AI 분석 시작</button>
-        </form>
-
-        <p class="notice">
-            텍스트 추출이 가능한 PDF만 지원합니다.
-            최대 파일 크기는 10MB입니다.
-            분석을 시작하면 OpenAI API 요금이 발생합니다.
-            분석 완료 후 기자 검토 화면으로 이동합니다.
-        </p>
-
-        <p><a href="/review?run_id=1">기존 분석 결과 보기</a></p>
-    </body>
-    </html>
-    """
-
+    return (Path(__file__).resolve().parent / "templates" / "workspace_upload.html").read_text(encoding="utf-8")
 
 @app.post("/analyze")
 def analyze_pdf(
@@ -427,7 +266,7 @@ def analyze_pdf(
         raise
 
     return RedirectResponse(
-        url=f"/review?run_id={run_id}",
+        url=f"/workspace/{run_id}",
         status_code=303,
     )
 
@@ -484,4 +323,51 @@ def analysis_detail(run_id: int):
 
     return HTMLResponse(
         content=html.replace("<body>", "<body>" + navigation, 1)
+    )
+
+
+@app.get("/workspace/{run_id}", response_class=HTMLResponse)
+def workspace_overview(run_id: int):
+    if run_id <= 0:
+        raise HTTPException(400, "Invalid analysis run ID")
+    connection = get_connection()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT sd.title, sd.organization, ar.completed_at,
+                          ar.analysis_json, ar.structured_source_json
+                   FROM analysis_runs ar
+                   JOIN source_documents sd ON sd.id = ar.source_document_id
+                   WHERE ar.id = %s AND ar.status = 'COMPLETED'""",
+                (run_id,),
+            )
+            record = cursor.fetchone()
+            cursor.execute(
+                "SELECT COUNT(*) AS total FROM article_ideas WHERE analysis_run_id = %s",
+                (run_id,),
+            )
+            count = cursor.fetchone()
+    finally:
+        connection.close()
+    if not record or record['analysis_json'] is None:
+        raise HTTPException(404, "Completed analysis not found")
+    saved = record['analysis_json']
+    analysis = (ReportingAnalysis.model_validate_json(saved)
+                if isinstance(saved, (str, bytes))
+                else ReportingAnalysis.model_validate(saved))
+    from .models import SourceStructure
+    raw = record['structured_source_json']
+    structured = ((SourceStructure.model_validate_json(raw)
+                   if isinstance(raw, (str, bytes))
+                   else SourceStructure.model_validate(raw))
+                  if raw is not None else None)
+    overview_env = Environment(
+        loader=FileSystemLoader(Path(__file__).resolve().parent / 'templates'),
+        autoescape=True,
+    )
+    return overview_env.get_template('workspace_overview.html.j2').render(
+        source=record, run_id=run_id, analysis=analysis,
+        idea_count=count['total'] if count else 0,
+        changes=analysis.material_changes,
+        gaps=structured.source_gaps if structured else [],
     )
