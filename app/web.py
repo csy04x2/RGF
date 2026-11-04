@@ -234,6 +234,9 @@ from .analysis_repository import save_analysis_run
 from .idea_repository import save_article_idea
 from .llm import OpenAIJSONClient
 from .pipeline import Pipeline
+from .pdf import extract_pdf, locate_pdf_excerpt_segments
+from .source_repository import save_source_evidence
+from .idea_repository import link_article_evidence
 
 
 UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
@@ -378,13 +381,43 @@ def analyze_pdf(
             prompt_version="v0.1",
         )
 
-        # Save every reporting lead.
+        # Save reporting leads and exact-match source excerpts.
+        source_text = extract_pdf(pdf_path)
+
         for lead in analysis.reporting_leads:
-            save_article_idea(
+            idea_id = save_article_idea(
                 analysis=analysis,
                 analysis_run_id=run_id,
                 lead_id=lead.lead_id,
             )
+
+            segments = locate_pdf_excerpt_segments(
+                source_text,
+                lead.provenance.excerpt,
+            )
+
+            for segment in segments:
+                if len(segment["pages"]) != 1:
+                    continue
+
+                page_number = segment["pages"][0]
+
+                evidence_id = save_source_evidence(
+                    source_document_id=source_id,
+                    page_number=page_number,
+                    content=segment["excerpt"],
+                )
+
+                link_article_evidence(
+                    article_idea_id=idea_id,
+                    source_evidence_id=evidence_id,
+                    relation_type="CONTEXT",
+                    explanation=(
+                        "Exact excerpt text matched the source PDF. "
+                        "Relevance and supporting relationship "
+                        "have not been verified."
+                    ),
+                )
 
     except Exception:
         # Only remove the file if it was never registered in MySQL.
