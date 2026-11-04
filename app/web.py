@@ -64,6 +64,7 @@ button {
 <body>
 <h1>RGF 기자 검토</h1>
 <p class="muted">분석 실행 ID: {{ run_id }}</p>
+<p class="muted">분석 실행 ID: {{ run_id }}</p>
 <p>AI가 생성한 취재 아이디어를 검토하고 승인하거나 보류합니다.</p>
 
 {% for idea in ideas %}
@@ -428,4 +429,59 @@ def analyze_pdf(
     return RedirectResponse(
         url=f"/review?run_id={run_id}",
         status_code=303,
+    )
+
+from .models import ReportingAnalysis
+from .renderer import render
+
+
+@app.get("/analysis/{run_id}", response_class=HTMLResponse)
+def analysis_detail(run_id: int):
+    """Display the complete saved AI analysis."""
+
+    if run_id <= 0:
+        raise HTTPException(400, "Invalid analysis run ID")
+
+    connection = get_connection()
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT analysis_json
+                FROM analysis_runs
+                WHERE id = %s
+                  AND status = 'COMPLETED'
+                """,
+                (run_id,),
+            )
+            row = cursor.fetchone()
+    finally:
+        connection.close()
+
+    if row is None or row["analysis_json"] is None:
+        raise HTTPException(
+            404,
+            "Completed analysis not found",
+        )
+
+    saved = row["analysis_json"]
+
+    if isinstance(saved, (str, bytes)):
+        analysis = ReportingAnalysis.model_validate_json(saved)
+    else:
+        analysis = ReportingAnalysis.model_validate(saved)
+
+    html = render(analysis)
+
+    navigation = (
+        '<nav style="padding:16px;'
+        'border-bottom:1px solid #ddd">'
+        f'<a href="/review?run_id={run_id}">'
+        'Return to journalist review</a>'
+        '</nav>'
+    )
+
+    return HTMLResponse(
+        content=html.replace("<body>", "<body>" + navigation, 1)
     )
