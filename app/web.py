@@ -223,3 +223,176 @@ def submit_review(
         url=f"/review?run_id={run_id}",
         status_code=303,
     )
+
+
+from pathlib import Path
+from uuid import uuid4
+
+from fastapi import File, UploadFile
+from .source_service import register_pdf
+from .analysis_repository import save_analysis_run
+from .idea_repository import save_article_idea
+from .llm import OpenAIJSONClient
+from .pipeline import Pipeline
+
+
+UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+
+
+@app.get("/", response_class=HTMLResponse)
+def upload_page():
+    return """
+    <!doctype html>
+    <html lang="ko">
+    <head>
+        <meta charset="utf-8">
+        <title>RGF - 정책자료 분석</title>
+        <style>
+            body {
+                font-family: system-ui, sans-serif;
+                max-width: 720px;
+                margin: 50px auto;
+                padding: 0 20px;
+                line-height: 1.7;
+            }
+            label {
+                display: block;
+                margin: 20px 0;
+            }
+            input {
+                display: block;
+                width: 100%;
+                padding: 10px;
+                box-sizing: border-box;
+            }
+            button {
+                padding: 12px 24px;
+                cursor: pointer;
+            }
+            .notice {
+                background: #f5f5f5;
+                padding: 16px;
+                border-radius: 6px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>RGF — Reporting Gap Finder</h1>
+        <p>
+            정부 정책자료를 분석해 정보 공백과
+            추가 취재가 필요한 지점을 찾아냅니다.
+        </p>
+
+        <form method="post"
+              action="/analyze"
+              enctype="multipart/form-data">
+
+            <label>
+                정책자료 제목
+                <input type="text" name="title" required maxlength="500">
+            </label>
+
+            <label>
+                발표 기관 (선택)
+                <input type="text" name="organization" maxlength="255">
+            </label>
+
+            <label>
+                PDF 파일
+                <input type="file"
+                       name="file"
+                       accept=".pdf,application/pdf"
+                       required>
+            </label>
+
+            <button type="submit">AI 분석 시작</button>
+        </form>
+
+        <p class="notice">
+            텍스트 추출이 가능한 PDF만 지원합니다.
+            최대 파일 크기는 10MB입니다.
+            분석을 시작하면 OpenAI API 요금이 발생합니다.
+            분석 완료 후 기자 검토 화면으로 이동합니다.
+        </p>
+
+        <p><a href="/review?run_id=1">기존 분석 결과 보기</a></p>
+    </body>
+    </html>
+    """
+
+
+@app.post("/analyze")
+def analyze_pdf(
+    title: str = Form(...),
+    organization: str = Form(""),
+    file: UploadFile = File(...),
+):
+    title = title.strip()
+    organization = organization.strip()
+
+    if not title:
+        raise HTTPException(400, "정책자료 제목을 입력해야 합니다.")
+
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(400, "PDF 파일만 업로드할 수 있습니다.")
+
+    try:
+        data = file.file.read(MAX_UPLOAD_BYTES + 1)
+    finally:
+        file.file.close()
+
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(413, "PDF 파일은 10MB 이하여야 합니다.")
+
+    if not data.startswith(b"%PDF-"):
+        raise HTTPException(400, "올바른 PDF 파일이 아닙니다.")
+
+    # Check AI configuration before saving a new source document.
+    client = OpenAIJSONClient()
+
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    pdf_path = UPLOAD_DIR / f"{uuid4().hex}.pdf"
+    pdf_path.write_bytes(data)
+
+    registered = False
+
+    try:
+        # Register the original PDF in MySQL.
+        source_id = register_pdf(
+            file_path=pdf_path,
+            title=title,
+            organization=organization or None,
+        )
+        registered = True
+
+        # Run the existing three-stage AI pipeline.
+        structured, analysis = Pipeline(client).run(pdf_path)
+
+        # Save the analysis.
+        run_id = save_analysis_run(
+            source_document_id=source_id,
+            structured=structured,
+            analysis=analysis,
+            model_name=client.model,
+            prompt_version="v0.1",
+        )
+
+        # Save every reporting lead.
+        for lead in analysis.reporting_leads:
+            save_article_idea(
+                analysis=analysis,
+                analysis_run_id=run_id,
+                lead_id=lead.lead_id,
+            )
+
+    except Exception:
+        # Only remove the file if it was never registered in MySQL.
+        if not registered:
+            pdf_path.unlink(missing_ok=True)
+        raise
+
+    return RedirectResponse(
+        url=f"/review?run_id={run_id}",
+        status_code=303,
+    )
