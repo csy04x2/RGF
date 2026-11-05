@@ -5,6 +5,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from .models import ReportingAnalysis, COLLECTIONS, object_id
 from .validation import snapshot, IntegrityError
+from .relation_review import RelationReviewResult
 
 ENV = Environment(
     loader=FileSystemLoader(Path(__file__).parent / "templates"),
@@ -50,4 +51,3 @@ def render(
 
     return html
 
-from .relation_review import RelationReviewResult
