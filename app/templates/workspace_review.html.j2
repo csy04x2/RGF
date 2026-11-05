@@ -60,8 +60,8 @@
     <nav class="nav" aria-label="작업 메뉴">
       <p class="nav-title">WORKSPACE</p>
       <a href="/workspace/{{ run_id }}">▦ 분석 개요</a>
-      <a href="/analysis/{{ run_id }}">▤ 전체 분석 원문</a>
       <a href="/review?run_id={{ run_id }}" class="current" aria-current="page">◉ 취재 아이디어</a>
+      <a href="/analysis/{{ run_id }}">▤ 전체 분석 원문</a>
       <a href="#review-area" id="review-nav">☑ 기자 검토</a>
     </nav>
     <div class="sidebar-foot">RGF v0.1<br>AI 분석 결과는 취재 제안이며 최종 판단은 기자가 수행합니다.</div>
@@ -75,8 +75,9 @@
     </header>
     <nav class="page-tabs" aria-label="분석 화면">
       <a href="/workspace/{{ run_id }}">분석 개요</a>
-      <a href="/analysis/{{ run_id }}">전체 분석 원문</a>
       <a href="/review?run_id={{ run_id }}" class="current" aria-current="page">취재 아이디어 <strong>{{ ideas|length }}</strong></a>
+      <a href="/analysis/{{ run_id }}">전체 분석 원문</a>
+</nav>
     </nav>
     <div class="workspace">
       <section class="panel" aria-label="취재 아이디어 목록">

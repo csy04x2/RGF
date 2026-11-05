@@ -185,6 +185,8 @@ from .analysis_repository import save_analysis_run
 from .idea_repository import save_article_idea
 from .llm import OpenAIJSONClient
 from .pipeline import Pipeline
+from fastapi import BackgroundTasks
+from .analysis_jobs import create_pending_run, run_analysis_job
 from .pdf import extract_pdf, locate_pdf_excerpt_segments
 from .source_repository import save_source_evidence
 from .idea_repository import link_article_evidence
@@ -200,16 +202,15 @@ def upload_page():
 
 @app.post("/analyze")
 def analyze_pdf(
+    background_tasks: BackgroundTasks,
     title: str = Form(...),
     organization: str = Form(""),
     file: UploadFile = File(...),
 ):
     title = title.strip()
     organization = organization.strip()
-
     if not title:
         raise HTTPException(400, "정책자료 제목을 입력해야 합니다.")
-
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(400, "PDF 파일만 업로드할 수 있습니다.")
 
@@ -217,90 +218,72 @@ def analyze_pdf(
         data = file.file.read(MAX_UPLOAD_BYTES + 1)
     finally:
         file.file.close()
-
     if len(data) > MAX_UPLOAD_BYTES:
         raise HTTPException(413, "PDF 파일은 10MB 이하여야 합니다.")
-
     if not data.startswith(b"%PDF-"):
         raise HTTPException(400, "올바른 PDF 파일이 아닙니다.")
 
-    # Check AI configuration before saving a new source document.
-    client = OpenAIJSONClient()
-
+    # Validate configuration before registering the job; no AI request here.
+    model_name = OpenAIJSONClient().model
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     pdf_path = UPLOAD_DIR / f"{uuid4().hex}.pdf"
     pdf_path.write_bytes(data)
-
-    registered = False
-
     try:
-        # Register the original PDF in MySQL.
         source_id = register_pdf(
             file_path=pdf_path,
             title=title,
             organization=organization or None,
         )
-        registered = True
-
-        # Run the existing three-stage AI pipeline.
-        structured, analysis = Pipeline(client).run(pdf_path)
-
-        # Save the analysis.
-        run_id = save_analysis_run(
-            source_document_id=source_id,
-            structured=structured,
-            analysis=analysis,
-            model_name=client.model,
-            prompt_version="v0.1",
-        )
-
-        # Save reporting leads and exact-match source excerpts.
-        source_text = extract_pdf(pdf_path)
-
-        for lead in analysis.reporting_leads:
-            idea_id = save_article_idea(
-                analysis=analysis,
-                analysis_run_id=run_id,
-                lead_id=lead.lead_id,
-            )
-
-            segments = locate_pdf_excerpt_segments(
-                source_text,
-                lead.provenance.excerpt,
-            )
-
-            for segment in segments:
-                if len(segment["pages"]) != 1:
-                    continue
-
-                page_number = segment["pages"][0]
-
-                evidence_id = save_source_evidence(
-                    source_document_id=source_id,
-                    page_number=page_number,
-                    content=segment["excerpt"],
-                )
-
-                link_article_evidence(
-                    article_idea_id=idea_id,
-                    source_evidence_id=evidence_id,
-                    relation_type="CONTEXT",
-                    explanation=(
-                        "Exact excerpt text matched the source PDF. "
-                        "Relevance and supporting relationship "
-                        "have not been verified."
-                    ),
-                )
-
+        run_id = create_pending_run(source_id, model_name)
     except Exception:
-        # Only remove the file if it was never registered in MySQL.
-        if not registered:
-            pdf_path.unlink(missing_ok=True)
+        # A registered document may remain if creating its run fails.
+        # Keep its PDF for inspection; do not silently delete it.
         raise
 
-    return RedirectResponse(
-        url=f"/workspace/{run_id}",
-        status_code=303,
+    background_tasks.add_task(run_analysis_job, run_id, source_id, str(pdf_path))
+    return RedirectResponse(url=f"/analysis-status/{run_id}", status_code=303)
+
+
+@app.get("/analysis-status/{run_id}", response_class=HTMLResponse)
+def analysis_status_page(run_id: int):
+    if run_id <= 0:
+        raise HTTPException(400, "Invalid analysis run ID")
+    connection = get_connection()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT status, created_at FROM analysis_runs WHERE id = %s",
+                (run_id,),
+            )
+            job = cursor.fetchone()
+    finally:
+        connection.close()
+    if job is None:
+        raise HTTPException(404, "Analysis run not found")
+    if job["status"] == "COMPLETED":
+        return RedirectResponse(url=f"/workspace/{run_id}", status_code=303)
+
+    import html
+    status = job["status"]
+    message = (
+        "분석 중입니다. 이 화면은 자동으로 갱신됩니다. 다시 분석 버튼을 누르지 마세요."
+        if status in ("PENDING", "RUNNING")
+        else "분석이 완료되지 않았습니다. 관리자에게 Railway 로그 확인을 요청하세요."
+    )
+    refresh = '<meta http-equiv="refresh" content="5">' if status in ("PENDING", "RUNNING") else ''
+    return HTMLResponse(
+        '<!doctype html><html lang="ko"><head><meta charset="utf-8">'
+        + refresh
+        + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        + '<title>RGF · 분석 진행 상태</title>'
+        + '<style>body{background:#f7f1eb;font-family:system-ui,sans-serif;color:#2b2521;'
+        + 'margin:10vh auto;padding:24px;max-width:640px}main{background:white;'
+        + 'border:1px solid #eadbd0;border-radius:14px;padding:28px}h1{font-size:24px}'
+        + 'p{line-height:1.8}a{color:#bd541b}</style></head><body><main>'
+        + '<h1>RGF · 분석 진행 상태</h1>'
+        + f'<p>분석 #{run_id} · {html.escape(status)}</p>'
+        + '<p>' + html.escape(message) + '</p>'
+        + '<p><a href="/">새 자료 분석 화면</a></p></main></body></html>'
     )
 
 from .models import ReportingAnalysis

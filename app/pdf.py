@@ -72,6 +72,7 @@ def verify_pdf_excerpt(
 def locate_pdf_excerpt_segments(
     source_text: str,
     excerpt: str | None,
+    preferred_page: int | None = None,
 ) -> list[dict]:
     """Locate each quoted segment in the original PDF pages."""
 
@@ -110,6 +111,10 @@ def locate_pdf_excerpt_segments(
             for page_number, page_text in pages.items()
             if target in normalize(page_text)
         ]
+        # A repeated exact quote is usable only when it also appears
+        # on the PDF page explicitly cited by the analysis.
+        if preferred_page is not None and preferred_page in found_pages:
+            found_pages = [preferred_page]
 
         results.append({
             "excerpt": segment,
