@@ -41,9 +41,15 @@
     .info-card h3{color:#b9541e;font-size:14px;margin:0 0 11px}.info-card p{font-size:13px;line-height:1.8;margin:0;overflow-wrap:anywhere}
     .info-card ul{padding-left:19px;margin:0;font-size:13px;line-height:1.8}.info-card li+li{margin-top:7px}
     .evidence{margin-top:15px;background:#fcf1e8;border-radius:10px;padding:17px}.evidence h3{color:#a64d20;font-size:14px;margin:0 0 12px}
-    .quote{background:#fff9f4;border:1px solid #eddfd4;padding:12px;border-radius:7px;margin-top:10px;font-size:13px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
+    .quote{background:#fff9f4;border:1px solid #eddfd4;padding:12px;border-radius:7px;margin-top:10px;font-size:13px;line-height:1.7;overflow-wrap:anywhere}
+    .evidence summary{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;list-style:none;font-size:14px;font-weight:750;color:#a64d20}
+    .evidence summary::-webkit-details-marker{display:none}
+    .evidence summary::after{content:"⌄";font-size:19px;line-height:1;transition:transform .2s}
+    .evidence[open] summary::after{transform:rotate(180deg)}
+    .evidence-toggle-label{font-size:11px;font-weight:500;color:#8d5d43;margin-left:auto}
+    .evidence-body{padding-top:8px}
     .evidence-label{font-size:11px;font-weight:700;color:#927e71;margin-bottom:4px}
-    .evidence-context{line-height:1.85;color:#382c24;white-space:pre-wrap;overflow-wrap:anywhere}
+    .evidence-context{line-height:1.75;color:#382c24;white-space:normal;overflow-wrap:anywhere}
     .quote small{display:block;color:#927e71;margin:0 0 6px}.warning{font-size:12px;color:#8d5d43;line-height:1.7;margin:12px 0 0}
     .review-form{margin-top:18px;border-top:1px solid #ebdfd5;padding-top:20px}.review-form h3{font-size:17px;margin:0 0 15px}
     .fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}.review-form label{font-size:13px;font-weight:650;display:block;margin-bottom:12px}
@@ -123,8 +129,9 @@
               {% else %}<p class="muted">저장된 추가 증거 항목을 확인할 수 없습니다.</p>{% endif %}
             </section>
           </div>
-          <section class="evidence" aria-label="원문 근거">
-            <h3>▤ 연결된 원문 근거 {{ evidence[idea.id]|length }}건</h3>
+          <details class="evidence" aria-label="원문 근거">
+            <summary>▤ 연결된 원문 근거 {{ evidence[idea.id]|length }}건 <span class="evidence-toggle-label">클릭하여 {{ '확인' if evidence[idea.id] else '안내 보기' }}</span></summary>
+            <div class="evidence-body">
             {% if evidence[idea.id] %}
               {% for item in evidence[idea.id] %}
               <div class="quote"><small>{{ item.location_label }} · 원문 일치 확인 · {{ "문맥 자료" if item.relation_type == "CONTEXT" else item.relation_type }}</small>
@@ -143,7 +150,8 @@
             {% else %}
               <p class="warning">아직 DB에 연결된 원문 근거가 없습니다. 근거가 확인된 것으로 간주하지 마세요.</p>
             {% endif %}
-          </section>
+            </div>
+          </details>
           <form class="review-form" method="post" action="/review" id="review-area-{{ idea.id }}">
             <h3>기자 검토 및 저장</h3>
             <input type="hidden" name="run_id" value="{{ run_id }}"><input type="hidden" name="lead_id" value="{{ idea.lead_id }}">
