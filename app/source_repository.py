@@ -1,5 +1,5 @@
 import hashlib
-from app.database import get_connection
+from app.database import get_connection, is_postgres
 
 
 def create_source_document(
@@ -41,8 +41,12 @@ def create_source_document(
             organization,
         )
 
-        cursor.execute(sql, values)
-        document_id = cursor.lastrowid
+        if is_postgres(conn):
+            cursor.execute(sql + " RETURNING id", values)
+            document_id = cursor.fetchone()["id"]
+        else:
+            cursor.execute(sql, values)
+            document_id = cursor.lastrowid
         conn.commit()
 
         return document_id
@@ -126,6 +130,16 @@ def save_source_evidence(
     """
 
     connection = get_connection()
+    postgres = is_postgres(connection)
+    if postgres:
+        sql = """
+            INSERT INTO source_evidence (
+                source_document_id, evidence_type, location_label, content, content_hash
+            ) VALUES (%s, 'PARAGRAPH', %s, %s, %s)
+            ON CONFLICT (source_document_id, location_label, content_hash)
+            DO UPDATE SET id = source_evidence.id
+            RETURNING id
+        """
 
     try:
         with connection.cursor() as cursor:
@@ -139,7 +153,7 @@ def save_source_evidence(
                 ),
             )
 
-            evidence_id = cursor.lastrowid
+            evidence_id = cursor.fetchone()["id"] if postgres else cursor.lastrowid
 
         connection.commit()
         return evidence_id

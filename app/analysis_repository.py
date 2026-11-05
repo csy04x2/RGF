@@ -1,5 +1,5 @@
 
-from app.database import get_connection
+from app.database import get_connection, is_postgres
 from app.models import ReportingAnalysis, SourceStructure
 from app.validation import validate_integrity
 
@@ -48,11 +48,16 @@ def save_analysis_run(
     )
 
     connection = get_connection()
+    postgres = is_postgres(connection)
+    if postgres:
+        sql = sql.replace("UTC_TIMESTAMP()", "(NOW() AT TIME ZONE 'UTC')")
+        sql = sql.replace("'COMPLETED', %s, %s, NULL", "'COMPLETED', %s::jsonb, %s::jsonb, NULL")
+        sql += " RETURNING id"
 
     try:
         with connection.cursor() as cursor:
             cursor.execute(sql, values)
-            run_id = cursor.lastrowid
+            run_id = cursor.fetchone()["id"] if postgres else cursor.lastrowid
 
         connection.commit()
         return run_id

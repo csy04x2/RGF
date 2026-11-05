@@ -1,17 +1,43 @@
-
 import os
 from pathlib import Path
 
 import pymysql
+import psycopg
+import psycopg
+from psycopg.rows import dict_row
 from dotenv import load_dotenv
+from psycopg.rows import dict_row
 
 
 ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path=ENV_PATH)
 
 
+
+
+def is_postgres(connection):
+    """Whether a connection is a real psycopg PostgreSQL connection."""
+    return isinstance(connection, psycopg.Connection)
+
+
 def get_connection():
-    """Create a connection to the RGF MySQL database."""
+    """Connect to PostgreSQL or the existing local MySQL."""
+
+    database_url = os.getenv("DATABASE_URL")
+
+    # Railway PostgreSQL
+    if database_url:
+        return psycopg.connect(
+            database_url,
+            row_factory=dict_row,
+            connect_timeout=5,
+        )
+
+    # Existing local MySQL
+    if os.getenv("DATABASE_URL"):
+        return psycopg.connect(
+            os.environ["DATABASE_URL"], row_factory=dict_row, connect_timeout=5
+        )
 
     required = [
         "MYSQL_HOST",
@@ -27,7 +53,7 @@ def get_connection():
 
     if missing:
         raise RuntimeError(
-            "MySQL 환경변수가 없습니다: "
+            "DB 연결 환경변수가 없습니다: "
             + ", ".join(missing)
         )
 

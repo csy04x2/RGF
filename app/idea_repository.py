@@ -2,7 +2,7 @@ from datetime import timezone
 from app.review import JournalistReview
 import json
 
-from app.database import get_connection
+from app.database import get_connection, is_postgres
 from app.models import ReportingAnalysis
 
 
@@ -73,11 +73,17 @@ def save_article_idea(
 
 
     connection = get_connection()
+    postgres = is_postgres(connection)
+    if postgres:
+        sql = sql.replace(
+            "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            "VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s::jsonb, %s::jsonb, %s)",
+        ) + " RETURNING id"
 
     try:
         with connection.cursor() as cursor:
             cursor.execute(sql, values)
-            saved_id = cursor.lastrowid
+            saved_id = cursor.fetchone()["id"] if postgres else cursor.lastrowid
 
         connection.commit()
         return saved_id
@@ -207,6 +213,13 @@ def link_article_evidence(
     """
 
     connection = get_connection()
+    if is_postgres(connection):
+        sql = """
+            INSERT INTO article_evidence (
+                article_idea_id, source_evidence_id, relation_type, explanation
+            ) VALUES (%s, %s, %s, %s)
+            ON CONFLICT (article_idea_id, source_evidence_id) DO NOTHING
+        """
 
     try:
         with connection.cursor() as cursor:
