@@ -1,12 +1,10 @@
-
 from datetime import datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
-
+from app.models import ReportingAnalysis
 
 ReviewStatus = Literal["검토대기", "승인", "보류"]
-
 
 class JournalistReview(BaseModel):
     """A journalist's review of one reporting lead."""
@@ -76,9 +74,6 @@ def load_review(
     return JournalistReview.model_validate_json(
         path.read_text(encoding="utf-8")
     )
-
-from app.models import ReportingAnalysis
-
 
 def validate_review_target(
     analysis: ReportingAnalysis,
