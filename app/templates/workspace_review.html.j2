@@ -42,6 +42,8 @@
     .info-card ul{padding-left:19px;margin:0;font-size:13px;line-height:1.8}.info-card li+li{margin-top:7px}
     .evidence{margin-top:15px;background:#fcf1e8;border-radius:10px;padding:17px}.evidence h3{color:#a64d20;font-size:14px;margin:0 0 12px}
     .quote{background:#fff9f4;border:1px solid #eddfd4;padding:12px;border-radius:7px;margin-top:10px;font-size:13px;line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere}
+    .evidence-label{font-size:11px;font-weight:700;color:#927e71;margin-bottom:4px}
+    .evidence-context{line-height:1.85;color:#382c24;white-space:pre-wrap;overflow-wrap:anywhere}
     .quote small{display:block;color:#927e71;margin:0 0 6px}.warning{font-size:12px;color:#8d5d43;line-height:1.7;margin:12px 0 0}
     .review-form{margin-top:18px;border-top:1px solid #ebdfd5;padding-top:20px}.review-form h3{font-size:17px;margin:0 0 15px}
     .fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}.review-form label{font-size:13px;font-weight:650;display:block;margin-bottom:12px}
@@ -125,7 +127,17 @@
             <h3>▤ 연결된 원문 근거 {{ evidence[idea.id]|length }}건</h3>
             {% if evidence[idea.id] %}
               {% for item in evidence[idea.id] %}
-              <div class="quote"><small>{{ item.location_label }} · 연결 유형 {{ item.relation_type }}</small>{{ item.content }}{% if item.explanation %}<small style="margin-top:10px">{{ item.explanation }}</small>{% endif %}</div>
+              <div class="quote"><small>{{ item.location_label }} · 원문 일치 확인 · {{ "문맥 자료" if item.relation_type == "CONTEXT" else item.relation_type }}</small>
+                {% if item.source_context %}
+                <div class="evidence-label">원문 주변 문맥</div>
+                <div class="evidence-context">{{ item.source_context }}</div>
+                <div class="evidence-label" style="margin-top:11px">일치 확인된 인용 구절</div>
+                <strong>{{ item.content }}</strong>
+                {% else %}
+                <div class="evidence-label">연결된 인용 구절</div>{{ item.content }}
+                <small style="margin-top:9px">원문에서 주변 문맥을 찾지 못했습니다. 출처 페이지를 다시 확인하세요.</small>
+                {% endif %}
+              </div>
               {% endfor %}
               <p class="warning">※ CONTEXT는 원문 문구가 일치한다는 의미입니다. 이 인용이 취재 아이디어를 실제로 뒷받침하는지는 검증되지 않았습니다.</p>
             {% else %}

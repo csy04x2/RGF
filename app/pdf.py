@@ -123,3 +123,31 @@ def locate_pdf_excerpt_segments(
         })
 
     return results
+
+
+def pdf_excerpt_context(source_text: str, location_label: str, excerpt: str, radius: int = 135) -> str | None:
+    """Return surrounding extracted text only if exact whitespace-insensitive quote matches its page."""
+    page_match = re.fullmatch(r"PDF\s+(\d+)", location_label or "")
+    if not page_match or not source_text or not excerpt or not excerpt.strip():
+        return None
+    page = int(page_match.group(1))
+    parts = re.split(r"(?m)^\[SOURCE PAGE (\d+)\]\s*$", source_text)
+    pages = {int(parts[i]): parts[i + 1] for i in range(1, len(parts) - 1, 2)}
+    body = pages.get(page)
+    if not body:
+        return None
+
+    # Preserve offsets into the original PDF-extracted text while ignoring only whitespace.
+    positions = [i for i, ch in enumerate(body) if not ch.isspace()]
+    condensed = "".join(body[i] for i in positions)
+    target = "".join(ch for ch in excerpt if not ch.isspace())
+    if not target:
+        return None
+    match_at = condensed.find(target)
+    if match_at < 0:
+        return None
+    start = positions[match_at]
+    end = positions[match_at + len(target) - 1] + 1
+    left, right = max(0, start - radius), min(len(body), end + radius)
+    snippet = body[left:right].strip()
+    return ("…" if left else "") + snippet + ("…" if right < len(body) else "")

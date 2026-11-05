@@ -12,6 +12,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, PlainTextResponse
 from jinja2 import Environment, FileSystemLoader
 
 from .database import get_connection
+from .pdf import pdf_excerpt_context
 from .idea_repository import save_journalist_review
 from .review import JournalistReview, update_review
 
@@ -90,7 +91,7 @@ def load_review_data(run_id: int):
             )
             analysis_row = cursor.fetchone()
             cursor.execute(
-                """SELECT sd.title, sd.organization FROM analysis_runs ar
+                """SELECT sd.title, sd.organization, sd.raw_text FROM analysis_runs ar
                    JOIN source_documents sd ON sd.id = ar.source_document_id
                    WHERE ar.id = %s""",
                 (run_id,),
@@ -100,8 +101,14 @@ def load_review_data(run_id: int):
         connection.close()
 
     evidence = defaultdict(list)
+    raw_source = (source_row or {}).get("raw_text") or ""
     for item in evidence_rows:
+        item["source_context"] = pdf_excerpt_context(
+            raw_source, item["location_label"], item["content"]
+        )
         evidence[item["article_idea_id"]].append(item)
+    if source_row:
+        source_row.pop("raw_text", None)  # Do not pass full PDF text to the template.
 
     # Add existing reporting-lead details without changing database schema.
     if analysis_row and analysis_row.get("analysis_json") is not None:
