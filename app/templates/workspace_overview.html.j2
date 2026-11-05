@@ -44,20 +44,40 @@
     .empty{padding:35px 10px;color:#807269;font-size:14px;line-height:1.7}.help{font-size:12px;color:#8f7d72}
     @media(max-width:1080px){.shell{grid-template-columns:200px minmax(0,1fr)}.workspace{grid-template-columns:1fr}.idea-list{max-height:290px}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:650px){.shell{display:block}.sidebar{padding:12px 16px;gap:12px}.sidebar .nav,.sidebar-foot{display:none}.brand{font-size:21px}.new{padding:9px}.top h1{font-size:24px}main{padding:20px 14px}.page-tabs{gap:15px}.cards,.fields{grid-template-columns:1fr}.detail-head{flex-wrap:wrap}}
-  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}.stat{background:white;border:1px solid #eee1d6;border-radius:12px;padding:22px}.stat strong{display:block;font-size:30px;margin:10px 0}.overview-section{margin-bottom:18px}.overview-list{display:grid;gap:11px}.overview-item{border:1px solid #eadbd0;border-radius:9px;padding:15px;background:#fffdfb}.overview-item h3{font-size:15px;margin:5px 0}.overview-item p{font-size:13px;color:#65564d;line-height:1.8;white-space:pre-wrap;margin:8px 0 0}@media(max-width:780px){.stats{grid-template-columns:1fr}}</style></head><body><div class="shell">
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}.stat{background:white;border:1px solid #eee1d6;border-radius:12px;padding:22px}.stat strong{display:block;font-size:30px;margin:10px 0}.overview-section{margin-bottom:18px}.overview-list{display:grid;gap:11px}.overview-item{border:1px solid #eadbd0;border-radius:9px;padding:15px;background:#fffdfb}.overview-item h3{font-size:15px;margin:5px 0}.overview-item p{font-size:13px;color:#65564d;line-height:1.8;white-space:pre-wrap;margin:8px 0 0}@media(max-width:780px){.stats{grid-template-columns:1fr}}
+    .sidebar{gap:20px;position:sticky;top:0;height:100vh;overflow-y:auto}
+    .sidebar .nav a{font-size:13px}
+    .lead-group{margin:0 0 8px}
+    .lead-group>summary{cursor:pointer;list-style:none;padding:11px 13px;border-radius:9px;font-size:14px;font-weight:750;color:#b7501b;background:#fbe8db;display:flex;gap:8px;align-items:center}
+    .lead-group>summary::-webkit-details-marker{display:none}
+    .lead-group>summary::before{content:'▸';font-size:13px}
+    .lead-group[open]>summary::before{content:'▾'}
+    .lead-count{margin-left:auto;font-size:12px;color:#9a654a}
+    .lead-menu{margin:8px 0 0 9px;padding-left:9px;border-left:1px solid #eadbd0;display:grid;gap:3px}
+    .nav .lead-menu a{display:block;margin:0;padding:9px 8px;font-size:12px;line-height:1.45;overflow-wrap:anywhere}
+    .nav .lead-menu a.selected{background:#fcebe0;color:#9f4116;font-weight:700}
+    .lead-label{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .lead-status{font-size:10px;color:#8e7b6e;margin-left:5px}
+    .lead-status.hold{color:#ae5a25}
+    .workspace{display:block}
+    .workspace>.panel{width:100%;max-width:1100px}
+    @media(max-width:650px){.sidebar{position:static;height:auto;max-height:46vh;overflow-y:auto}.sidebar .nav{display:block}.sidebar-foot{display:none}.lead-menu{max-height:220px;overflow:auto}}
+</style></head><body><div class="shell">
 <aside class="sidebar" aria-label="기본 탐색">
 <div class="brand"><span class="logo">R</span><div>RGF<small>REPORTING GAP FINDER</small></div></div>
 <a href="/" class="new">＋ 새 자료 분석</a>
 <nav class="nav" aria-label="작업 메뉴"><p class="nav-title">WORKSPACE</p>
 <a class="current" aria-current="page" href="/workspace/{{ run_id }}">▦ 분석 개요</a>
-<a href="/review?run_id={{ run_id }}">◉ 취재 아이디어</a>
-<a href="/analysis/{{ run_id }}">▤ 전체 분석 원문</a>
-<a href="/review?run_id={{ run_id }}">☑ 기자 검토</a>
-</nav><div class="sidebar-foot">RGF v0.1<br>AI 분석 결과는 취재 제안이며 최종 판단은 기자가 수행합니다.</div></aside>
+<details class="lead-group" open><summary>◉ 취재 아이디어 <span class="lead-count">{{ nav_ideas|length }}</span></summary>
+<div class="lead-menu" aria-label="추가 취재 과제">
+{% for idea in nav_ideas %}
+<a href="/review?run_id={{ run_id }}&amp;lead={{ idea.lead_id|urlencode }}"><span class="lead-label">{{ idea.lead_id }} · {{ idea.title }}</span><span class="lead-status{{ ' hold' if idea.review_status == '보류' else '' }}">{{ idea.review_status }}</span></a>
+{% else %}<span class="muted">등록된 취재 아이디어 없음</span>{% endfor %}
+</div></details></nav><div class="sidebar-foot">RGF v0.1<br>AI 분석 결과는 취재 제안이며 최종 판단은 기자가 수행합니다.</div></aside>
 <main><header class="top"><a href="/" class="back">← 새 자료 분석</a>
 <div class="eyebrow" style="margin-top:18px">ANALYSIS OVERVIEW</div>
 <h1>{{ source.title }}</h1><div class="meta">{{ source.organization or '발표 기관 미입력' }} · 분석 #{{ run_id }} · 저장일 {{ source.completed_at.strftime('%Y.%m.%d') if source.completed_at else '미확인' }}</div></header>
-<nav class="page-tabs" aria-label="분석 화면"><a class="current" aria-current="page" href="/workspace/{{ run_id }}">분석 개요</a><a href="/review?run_id={{ run_id }}">취재 아이디어 {{ idea_count }}</a><a href="/analysis/{{ run_id }}">전체 분석 원문</a></nav>
+
 <section class="stats" aria-label="분석 요약 수치"><div class="stat"><div class="eyebrow">REPORTING LEADS</div><strong>{{ idea_count }}</strong><span class="muted">취재 아이디어</span></div><div class="stat"><div class="eyebrow">SOURCE GAPS</div><strong>{{ gaps|length }}</strong><span class="muted">자료 내 정보 공백</span></div><div class="stat"><div class="eyebrow">MATERIAL CHANGES</div><strong>{{ changes|length }}</strong><span class="muted">주요 정책 변화</span></div></section>
 <section class="panel overview-section"><div class="eyebrow">DISCOVERY SUMMARY</div><h2 style="margin-top:8px">핵심 분석 요약</h2><p style="font-size:14px;line-height:1.85;white-space:pre-wrap">{{ analysis.discovery_summary }}</p></section>
 <section class="panel overview-section"><div class="eyebrow">POLICY CHANGES</div><h2 style="margin:8px 0 15px">주요 정책 변화</h2><div class="overview-list">
@@ -66,5 +86,8 @@
 </div></section>
 <section class="panel overview-section"><div class="eyebrow">SOURCE GAPS</div><h2 style="margin:8px 0 8px">원문에서 발견한 정보 공백</h2><p class="subtitle">저장된 자료 구조화 결과입니다. 외부 취재를 통해 검증된 사실은 아닙니다.</p><div class="overview-list">
 {% for gap in gaps %}<article class="overview-item"><div class="eyebrow">{{ gap.id }} · {{ gap.gap_type.value }}</div><h3>{{ gap.missing_information }}</h3><p>{{ gap.why_it_matters }}</p></article>{% else %}<p class="muted">저장된 정보 공백이 없습니다.</p>{% endfor %}
-</div></section><p class="help">AI 분석은 취재 출발점이며 최종 사실 판단은 기자가 수행합니다.</p>
+</div></section><details class="panel overview-section" style="padding:15px 20px"><summary style="cursor:pointer;font-weight:700;color:#a64d20">AI 전체 분석 결과 보기</summary>
+<p class="help">선택하면 기존 전체 분석 화면을 열 수 있습니다. 저장된 분석 데이터는 삭제되지 않았습니다.</p>
+<a href="/analysis/{{ run_id }}" style="color:#b7501b;text-decoration:underline">전체 분석 화면 열기</a></details>
+<p class="help">AI 분석은 취재 출발점이며 최종 사실 판단은 기자가 수행합니다.</p>
 </main></div></body></html>

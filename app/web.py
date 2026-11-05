@@ -178,7 +178,7 @@ def submit_review(
         raise HTTPException(400, str(exc)) from exc
 
     return RedirectResponse(
-        url=f"/review?run_id={run_id}",
+        url=f"/review?run_id={run_id}&lead={lead_id}",
         status_code=303,
     )
 
@@ -370,6 +370,11 @@ def workspace_overview(run_id: int):
                 (run_id,),
             )
             count = cursor.fetchone()
+            cursor.execute(
+                "SELECT lead_id, title, review_status FROM article_ideas WHERE analysis_run_id = %s ORDER BY id",
+                (run_id,),
+            )
+            nav_ideas = cursor.fetchall()
     finally:
         connection.close()
     if not record or record['analysis_json'] is None:
@@ -390,7 +395,7 @@ def workspace_overview(run_id: int):
     )
     return overview_env.get_template('workspace_overview.html.j2').render(
         source=record, run_id=run_id, analysis=analysis,
-        idea_count=count['total'] if count else 0,
+        idea_count=count['total'] if count else 0, nav_ideas=nav_ideas,
         changes=analysis.material_changes,
         gaps=structured.source_gaps if structured else [],
     )

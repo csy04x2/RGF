@@ -58,6 +58,24 @@
     .empty{padding:35px 10px;color:#807269;font-size:14px;line-height:1.7}.help{font-size:12px;color:#8f7d72}
     @media(max-width:1080px){.shell{grid-template-columns:200px minmax(0,1fr)}.workspace{grid-template-columns:1fr}.idea-list{max-height:290px}.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:650px){.shell{display:block}.sidebar{padding:12px 16px;gap:12px}.sidebar .nav,.sidebar-foot{display:none}.brand{font-size:21px}.new{padding:9px}.top h1{font-size:24px}main{padding:20px 14px}.page-tabs{gap:15px}.cards,.fields{grid-template-columns:1fr}.detail-head{flex-wrap:wrap}}
+
+    .sidebar{gap:20px;position:sticky;top:0;height:100vh;overflow-y:auto}
+    .sidebar .nav a{font-size:13px}
+    .lead-group{margin:0 0 8px}
+    .lead-group>summary{cursor:pointer;list-style:none;padding:11px 13px;border-radius:9px;font-size:14px;font-weight:750;color:#b7501b;background:#fbe8db;display:flex;gap:8px;align-items:center}
+    .lead-group>summary::-webkit-details-marker{display:none}
+    .lead-group>summary::before{content:'▸';font-size:13px}
+    .lead-group[open]>summary::before{content:'▾'}
+    .lead-count{margin-left:auto;font-size:12px;color:#9a654a}
+    .lead-menu{margin:8px 0 0 9px;padding-left:9px;border-left:1px solid #eadbd0;display:grid;gap:3px}
+    .nav .lead-menu a{display:block;margin:0;padding:9px 8px;font-size:12px;line-height:1.45;overflow-wrap:anywhere}
+    .nav .lead-menu a.selected{background:#fcebe0;color:#9f4116;font-weight:700}
+    .lead-label{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .lead-status{font-size:10px;color:#8e7b6e;margin-left:5px}
+    .lead-status.hold{color:#ae5a25}
+    .workspace{display:block}
+    .workspace>.panel{width:100%;max-width:1100px}
+    @media(max-width:650px){.sidebar{position:static;height:auto;max-height:46vh;overflow-y:auto}.sidebar .nav{display:block}.sidebar-foot{display:none}.lead-menu{max-height:220px;overflow:auto}}
   </style>
 </head>
 <body>
@@ -68,9 +86,17 @@
     <nav class="nav" aria-label="작업 메뉴">
       <p class="nav-title">WORKSPACE</p>
       <a href="/workspace/{{ run_id }}">▦ 분석 개요</a>
-      <a href="/review?run_id={{ run_id }}" class="current" aria-current="page">◉ 취재 아이디어</a>
-      <a href="/analysis/{{ run_id }}">▤ 전체 분석 원문</a>
-      <a href="#review-area" id="review-nav">☑ 기자 검토</a>
+      <details class="lead-group" open>
+        <summary>◉ 취재 아이디어 <span class="lead-count">{{ ideas|length }}</span></summary>
+        <div class="lead-menu" aria-label="추가 취재 과제">
+          {% for idea in ideas %}
+          <a class="lead-link" href="/review?run_id={{ run_id }}&amp;lead={{ idea.lead_id|urlencode }}" data-lead="{{ idea.lead_id }}" aria-controls="detail-{{ idea.id }}">
+            <span class="lead-label">{{ idea.lead_id }} · {{ idea.title }}</span>
+            <span class="lead-status{{ ' hold' if idea.review_status == '보류' else '' }}">{{ idea.review_status }}</span>
+          </a>
+          {% else %}<span class="muted">등록된 취재 아이디어 없음</span>{% endfor %}
+        </div>
+      </details>
     </nav>
     <div class="sidebar-foot">RGF v0.1<br>AI 분석 결과는 취재 제안이며 최종 판단은 기자가 수행합니다.</div>
   </aside>
@@ -81,33 +107,7 @@
       <h1>{{ source.title }}</h1>
       <div class="meta">{{ source.organization or "발표 기관 미입력" }} · 분석 #{{ run_id }} · 취재 아이디어 {{ ideas|length }}건</div>
     </header>
-    <nav class="page-tabs" aria-label="분석 화면">
-      <a href="/workspace/{{ run_id }}">분석 개요</a>
-      <a href="/review?run_id={{ run_id }}" class="current" aria-current="page">취재 아이디어 <strong>{{ ideas|length }}</strong></a>
-      <a href="/analysis/{{ run_id }}">전체 분석 원문</a>
-</nav>
-    </nav>
     <div class="workspace">
-      <section class="panel" aria-label="취재 아이디어 목록">
-        <h2>취재 아이디어 목록</h2>
-        <p class="subtitle">AI가 발견한 추가 취재 과제 {{ ideas|length }}건</p>
-        <div class="filters" role="group" aria-label="검토 상태 필터">
-          <button type="button" class="filter active" data-filter="all" aria-pressed="true">전체 {{ ideas|length }}</button>
-          {% for st in ['검토대기', '승인', '보류'] %}<button type="button" class="filter" data-filter="{{ st }}" aria-pressed="false">{{ st }} {{ ideas|selectattr('review_status','equalto',st)|list|length }}</button>{% endfor %}
-        </div>
-        <div class="idea-list" role="listbox" aria-label="아이디어 선택" id="idea-list">
-          {% for idea in ideas %}
-          <button type="button" class="idea-button" role="option" data-id="{{ idea.id }}" data-status="{{ idea.review_status }}" aria-selected="{{ 'true' if loop.first else 'false' }}" aria-controls="detail-{{ idea.id }}">
-            <span class="id-chip">{{ idea.lead_id }}</span>
-            <span class="idea-text"><strong>{{ idea.title }}</strong><span>우선순위 {{ idea.priority }}</span></span>
-            <span class="status">{{ idea.review_status }}</span>
-          </button>
-          {% else %}
-          <div class="empty">이 분석 실행에 저장된 아이디어가 없습니다.</div>
-          {% endfor %}
-        </div>
-        <p class="help" id="filter-empty" hidden>해당 상태의 아이디어가 없습니다.</p>
-      </section>
       <section class="panel" aria-label="선택한 취재 아이디어 상세" id="details">
         {% for idea in ideas %}
         <article class="detail" id="detail-{{ idea.id }}" data-detail-id="{{ idea.id }}" {% if not loop.first %}hidden{% endif %}>
@@ -173,33 +173,35 @@
 </div>
 <script>
 (function(){
-  const buttons=[...document.querySelectorAll('.idea-button')];
+  const links=[...document.querySelectorAll('.lead-link')];
   const details=[...document.querySelectorAll('.detail')];
-  const filters=[...document.querySelectorAll('.filter')];
-  let filter='all';
-  function select(btn){
-    buttons.forEach(b=>b.setAttribute('aria-selected',String(b===btn)));
-    details.forEach(d=>d.hidden=(!btn||d.dataset.detailId!==btn.dataset.id));
+  function selectLead(lead, updateUrl){
+    const found=links.find(a=>a.dataset.lead===lead);
+    const selected=found||links[0];
+    links.forEach(a=>{
+      const active=a===selected;
+      a.classList.toggle('selected',active);
+      if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');
+    });
+    details.forEach(d=>{d.hidden=!(selected&&d.id===selected.getAttribute('aria-controls'));});
+    if(updateUrl&&selected){
+      const url=new URL(window.location.href);
+      url.searchParams.set('lead',selected.dataset.lead);
+      history.replaceState(null,'',url.pathname+url.search);
+    }
   }
-  function applyFilter(next){
-    filter=next;
-    filters.forEach(b=>{const current=b.dataset.filter===filter;b.classList.toggle('active',current);b.setAttribute('aria-pressed',String(current));});
-    buttons.forEach(b=>b.hidden=filter!=='all'&&b.dataset.status!==filter);
-    const active=buttons.find(b=>b.getAttribute('aria-selected')==='true'&&!b.hidden);
-    const first=buttons.find(b=>!b.hidden);
-    select(active||first);
-    document.getElementById('filter-empty').hidden=!!first;
-  }
-  buttons.forEach(b=>b.addEventListener('click',()=>select(b)));
-  filters.forEach(b=>b.addEventListener('click',()=>applyFilter(b.dataset.filter)));
-  const nav=document.getElementById('review-nav');
-  if(nav)nav.addEventListener('click',e=>{e.preventDefault();const active=details.find(d=>!d.hidden);active?.querySelector('.review-form')?.scrollIntoView({behavior:'smooth',block:'start'});});
-  document.querySelectorAll('.review-form').forEach(form=>form.addEventListener('submit',e=>{
+  links.forEach(link=>link.addEventListener('click',event=>{
+    if(event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
+    event.preventDefault();selectLead(link.dataset.lead,true);
+  }));
+  const requested=new URLSearchParams(window.location.search).get('lead');
+  selectLead(requested,false);
+  window.addEventListener('popstate',()=>selectLead(new URLSearchParams(window.location.search).get('lead'),false));
+  document.querySelectorAll('.review-form').forEach(form=>form.addEventListener('submit',event=>{
     const status=form.querySelector('[name="status"]').value;
     const note=form.querySelector('[name="review_note"]').value.trim();
-    if(status==='보류'&&!note){e.preventDefault();alert('보류 사유를 입력해 주세요.');form.querySelector('[name="review_note"]').focus();}
+    if(status==='보류'&&!note){event.preventDefault();alert('보류 사유를 입력해 주세요.');form.querySelector('[name="review_note"]').focus();}
   }));
-  applyFilter('all');
 })();
 </script>
 </body>
