@@ -1,9 +1,14 @@
 from pathlib import Path
+import base64
+import binascii
+import os
+import secrets
+
 
 from collections import defaultdict
 
 from fastapi import FastAPI, Form, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, PlainTextResponse
 from jinja2 import Environment, FileSystemLoader
 
 from .database import get_connection
@@ -12,6 +17,34 @@ from .review import JournalistReview, update_review
 
 
 app = FastAPI(title="RGF Journalist Review")
+
+@app.middleware("http")
+async def rgf_access_guard(request, call_next):
+    """Protect all routes on Railway with one shared browser login."""
+    password = os.getenv("RGF_ACCESS_PASSWORD", "")
+    hosted = bool(os.getenv("RAILWAY_PROJECT_ID") or os.getenv("RAILWAY_ENVIRONMENT_NAME"))
+    if not password:
+        if hosted:
+            return PlainTextResponse("Access password not configured", status_code=503)
+        return await call_next(request)  # Preserve the existing local workflow.
+
+    authorization = request.headers.get("authorization", "")
+    valid = False
+    if authorization.startswith("Basic "):
+        try:
+            decoded = base64.b64decode(authorization[6:], validate=True).decode("utf-8")
+            username, submitted = decoded.split(":", 1)
+            valid = (secrets.compare_digest(username, "rgf")
+                     and secrets.compare_digest(submitted, password))
+        except (binascii.Error, UnicodeDecodeError, ValueError):
+            pass
+    if not valid:
+        return PlainTextResponse(
+            "RGF requires authentication", status_code=401,
+            headers={"WWW-Authenticate": 'Basic realm="RGF"'},
+        )
+    return await call_next(request)
+
 
 env = Environment(autoescape=True)
 
