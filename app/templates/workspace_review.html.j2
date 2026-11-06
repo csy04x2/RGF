@@ -30,7 +30,7 @@
     .filter{border:1px solid #e6dacf;border-radius:7px;background:#fff;padding:8px 11px;font-size:12px;color:#514137}
     .filter.active{background:#e76b2b;color:white;border-color:#e76b2b}
     .idea-list{max-height:68vh;overflow:auto;padding-right:3px}.idea-button{width:100%;text-align:left;border:0;border-bottom:1px solid #eee2da;background:#fff;display:flex;align-items:start;gap:10px;padding:14px 9px;border-radius:7px;color:#332923}
-    .idea-button[aria-selected="true"]{background:#fcebe0}.id-chip{font-size:12px;color:#b75b2f;background:#fff4ed;border-radius:6px;padding:5px 7px;font-weight:800;flex-shrink:0}
+    .idea-button[aria-selected="true"],.idea-button[aria-pressed="true"]{background:#fcebe0}.id-chip{font-size:12px;color:#b75b2f;background:#fff4ed;border-radius:6px;padding:5px 7px;font-weight:800;flex-shrink:0}
     .idea-text{flex:1;min-width:0}.idea-text strong{display:block;font-size:13px;line-height:1.5}.idea-text span{display:block;color:#88766c;font-size:11px;margin-top:3px}
     .status{font-size:11px;background:#f5f1ec;border-radius:999px;padding:5px 9px;color:#736255;white-space:nowrap}
     .detail[hidden],.idea-button[hidden]{display:none!important}
@@ -76,7 +76,26 @@
     .workspace{display:block}
     .workspace>.panel{width:100%;max-width:1100px}
     @media(max-width:650px){.sidebar{position:static;height:auto;max-height:46vh;overflow-y:auto}.sidebar .nav{display:block}.sidebar-foot{display:none}.lead-menu{max-height:220px;overflow:auto}}
-  </style>
+  
+    /* Resizable left navigation and properly wrapping reporting-lead titles. */
+    .shell{grid-template-columns:minmax(0,var(--rgf-sidebar-width,300px)) 7px minmax(0,1fr)}
+    .sidebar{min-width:0;overflow-x:hidden}
+    .nav,.lead-group,.lead-menu,.lead-link{min-width:0;max-width:100%}
+    .lead-label{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:keep-all;line-height:1.5}
+    .nav .lead-menu a{white-space:normal;overflow-wrap:anywhere}
+    .sidebar-resizer{cursor:col-resize;touch-action:none;background:#ede3d9;position:relative}
+    .sidebar-resizer::after{content:"";position:absolute;top:45%;left:2px;width:3px;height:38px;background:#c7b6a7;border-radius:4px}
+    .sidebar-resizer:hover,.sidebar-resizer:focus-visible{background:#e7b392;outline:none}
+    body.sidebar-dragging{cursor:col-resize;user-select:none}
+    @media(max-width:650px){.shell{display:block}.sidebar-resizer{display:none}}
+
+    .workspace{display:grid;grid-template-columns:minmax(230px,.8fr) minmax(0,1.45fr);gap:16px;align-items:start}
+    .workspace>.panel{width:auto;max-width:none;min-width:0}
+    .idea-button{min-width:0;overflow-wrap:anywhere}
+    .idea-text strong{white-space:normal;overflow-wrap:anywhere;word-break:keep-all}
+    .idea-button .status{flex-shrink:0}
+    @media(max-width:1150px){.workspace{grid-template-columns:1fr}.idea-list{max-height:300px}}
+</style>
 </head>
 <body>
 <div class="shell">
@@ -100,6 +119,8 @@
     </nav>
     <div class="sidebar-foot">RGF v0.1<br>AI 분석 결과는 취재 제안이며 최종 판단은 기자가 수행합니다.</div>
   </aside>
+  <div class="sidebar-resizer" role="separator" aria-label="사이드바 너비 조절" aria-orientation="vertical" aria-valuemin="220" aria-valuemax="520" aria-valuenow="300" tabindex="0" title="좌우로 드래그하여 사이드바 너비 조절"></div>
+
   <main>
     <header class="top">
       <a href="/" class="back">← 새 자료 분석</a>
@@ -108,6 +129,24 @@
       <div class="meta">{{ source.organization or "발표 기관 미입력" }} · 분석 #{{ run_id }} · 취재 아이디어 {{ ideas|length }}건</div>
     </header>
     <div class="workspace">
+      <section class="panel" aria-label="취재 아이디어 목록">
+        <h2>취재 아이디어 목록</h2>
+        <p class="subtitle">추가 취재 과제 {{ ideas|length }}건 · 항목을 선택하면 오른쪽에 표시됩니다.</p>
+        <div class="filters" role="group" aria-label="검토 상태 필터">
+          <button type="button" class="filter active" data-filter="all" aria-pressed="true">전체 {{ ideas|length }}</button>
+          {% for st in ['검토대기','승인','보류'] %}<button type="button" class="filter" data-filter="{{ st }}" aria-pressed="false">{{ st }} {{ ideas|selectattr('review_status','equalto',st)|list|length }}</button>{% endfor %}
+        </div>
+        <div class="idea-list" aria-label="아이디어 선택" id="idea-list">
+          {% for idea in ideas %}
+          <button type="button" class="idea-button" data-lead="{{ idea.lead_id }}" data-status="{{ idea.review_status }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">
+            <span class="id-chip">{{ idea.lead_id }}</span>
+            <span class="idea-text"><strong>{{ idea.title }}</strong><span>우선순위 {{ idea.priority }}</span></span>
+            <span class="status">{{ idea.review_status }}</span>
+          </button>
+          {% else %}<div class="empty">저장된 취재 아이디어가 없습니다.</div>{% endfor %}
+        </div>
+        <p class="help" id="filter-empty" hidden>해당 상태의 아이디어가 없습니다.</p>
+      </section>
       <section class="panel" aria-label="선택한 취재 아이디어 상세" id="details">
         {% for idea in ideas %}
         <article class="detail" id="detail-{{ idea.id }}" data-detail-id="{{ idea.id }}" {% if not loop.first %}hidden{% endif %}>
@@ -175,6 +214,9 @@
 (function(){
   const links=[...document.querySelectorAll('.lead-link')];
   const details=[...document.querySelectorAll('.detail')];
+  const buttons=[...document.querySelectorAll('.idea-button')];
+  const filters=[...document.querySelectorAll('.filter')];
+  let filter='all';
   function selectLead(lead, updateUrl){
     const found=links.find(a=>a.dataset.lead===lead);
     const selected=found||links[0];
@@ -183,17 +225,35 @@
       a.classList.toggle('selected',active);
       if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');
     });
+    buttons.forEach(b=>b.setAttribute('aria-pressed',String(!!selected&&b.dataset.lead===selected.dataset.lead)));
     details.forEach(d=>{d.hidden=!(selected&&d.id===selected.getAttribute('aria-controls'));});
     if(updateUrl&&selected){
       const url=new URL(window.location.href);
       url.searchParams.set('lead',selected.dataset.lead);
       history.replaceState(null,'',url.pathname+url.search);
     }
+    // Direct sidebar navigation must still reveal the selected main-list item.
+    if(selected&&filter!=='all'){
+      const match=buttons.find(b=>b.dataset.lead===selected.dataset.lead);
+      if(match&&match.hidden)applyFilter('all');
+    }
+  }
+  function applyFilter(value){
+    filter=value;
+    filters.forEach(b=>{const active=b.dataset.filter===value;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});
+    buttons.forEach(b=>{b.hidden=value!=='all'&&b.dataset.status!==value;});
+    document.getElementById('filter-empty').hidden=buttons.some(b=>!b.hidden);
+    const active=buttons.find(b=>b.getAttribute('aria-pressed')==='true'&&!b.hidden);
+    const first=buttons.find(b=>!b.hidden);
+    if(!active&&first)selectLead(first.dataset.lead,true);
+    if(!first)details.forEach(d=>d.hidden=true);
   }
   links.forEach(link=>link.addEventListener('click',event=>{
     if(event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
     event.preventDefault();selectLead(link.dataset.lead,true);
   }));
+  buttons.forEach(button=>button.addEventListener('click',()=>selectLead(button.dataset.lead,true)));
+  filters.forEach(button=>button.addEventListener('click',()=>applyFilter(button.dataset.filter)));
   const requested=new URLSearchParams(window.location.search).get('lead');
   selectLead(requested,false);
   window.addEventListener('popstate',()=>selectLead(new URLSearchParams(window.location.search).get('lead'),false));
@@ -202,6 +262,49 @@
     const note=form.querySelector('[name="review_note"]').value.trim();
     if(status==='보류'&&!note){event.preventDefault();alert('보류 사유를 입력해 주세요.');form.querySelector('[name="review_note"]').focus();}
   }));
+})();
+</script>
+
+<script>
+(function(){
+  const shell=document.querySelector('.shell');
+  const handle=document.querySelector('.sidebar-resizer');
+  if(!shell||!handle)return;
+  function bounds(){return {min:220,max:Math.max(220,Math.min(520,window.innerWidth-330))};}
+  function setWidth(px){
+    const {min,max}=bounds();
+    const value=Math.min(max,Math.max(min,Math.round(px)));
+    shell.style.setProperty('--rgf-sidebar-width',value+'px');
+    handle.setAttribute('aria-valuenow',String(value));
+    return value;
+  }
+  let remembered=300;
+  try{remembered=Number(localStorage.getItem('rgf_sidebar_width'))||300;}catch(_e){}
+  setWidth(remembered);
+  handle.addEventListener('pointerdown',function(event){
+    if(event.button!==0)return;
+    event.preventDefault();
+    handle.setPointerCapture(event.pointerId);
+    document.body.classList.add('sidebar-dragging');
+  });
+  handle.addEventListener('pointermove',function(event){
+    if(!handle.hasPointerCapture(event.pointerId))return;
+    setWidth(event.clientX-shell.getBoundingClientRect().left);
+  });
+  function stopDrag(event){
+    document.body.classList.remove('sidebar-dragging');
+    if(handle.hasPointerCapture(event.pointerId))handle.releasePointerCapture(event.pointerId);
+    try{localStorage.setItem('rgf_sidebar_width',handle.getAttribute('aria-valuenow'));}catch(_e){}
+  }
+  handle.addEventListener('pointerup',stopDrag);
+  handle.addEventListener('pointercancel',stopDrag);
+  handle.addEventListener('keydown',function(event){
+    if(event.key!=='ArrowLeft'&&event.key!=='ArrowRight')return;
+    event.preventDefault();
+    const value=setWidth(Number(handle.getAttribute('aria-valuenow'))+(event.key==='ArrowRight'?20:-20));
+    try{localStorage.setItem('rgf_sidebar_width',String(value));}catch(_e){}
+  });
+  window.addEventListener('resize',()=>setWidth(Number(handle.getAttribute('aria-valuenow'))));
 })();
 </script>
 </body>

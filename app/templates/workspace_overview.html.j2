@@ -62,6 +62,18 @@
     .workspace{display:block}
     .workspace>.panel{width:100%;max-width:1100px}
     @media(max-width:650px){.sidebar{position:static;height:auto;max-height:46vh;overflow-y:auto}.sidebar .nav{display:block}.sidebar-foot{display:none}.lead-menu{max-height:220px;overflow:auto}}
+
+    /* Resizable left navigation and properly wrapping reporting-lead titles. */
+    .shell{grid-template-columns:minmax(0,var(--rgf-sidebar-width,300px)) 7px minmax(0,1fr)}
+    .sidebar{min-width:0;overflow-x:hidden}
+    .nav,.lead-group,.lead-menu,.lead-link{min-width:0;max-width:100%}
+    .lead-label{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere;word-break:keep-all;line-height:1.5}
+    .nav .lead-menu a{white-space:normal;overflow-wrap:anywhere}
+    .sidebar-resizer{cursor:col-resize;touch-action:none;background:#ede3d9;position:relative}
+    .sidebar-resizer::after{content:"";position:absolute;top:45%;left:2px;width:3px;height:38px;background:#c7b6a7;border-radius:4px}
+    .sidebar-resizer:hover,.sidebar-resizer:focus-visible{background:#e7b392;outline:none}
+    body.sidebar-dragging{cursor:col-resize;user-select:none}
+    @media(max-width:650px){.shell{display:block}.sidebar-resizer{display:none}}
 </style></head><body><div class="shell">
 <aside class="sidebar" aria-label="기본 탐색">
 <div class="brand"><span class="logo">R</span><div>RGF<small>REPORTING GAP FINDER</small></div></div>
@@ -74,6 +86,8 @@
 <a href="/review?run_id={{ run_id }}&amp;lead={{ idea.lead_id|urlencode }}"><span class="lead-label">{{ idea.lead_id }} · {{ idea.title }}</span><span class="lead-status{{ ' hold' if idea.review_status == '보류' else '' }}">{{ idea.review_status }}</span></a>
 {% else %}<span class="muted">등록된 취재 아이디어 없음</span>{% endfor %}
 </div></details></nav><div class="sidebar-foot">RGF v0.1<br>AI 분석 결과는 취재 제안이며 최종 판단은 기자가 수행합니다.</div></aside>
+  <div class="sidebar-resizer" role="separator" aria-label="사이드바 너비 조절" aria-orientation="vertical" aria-valuemin="220" aria-valuemax="520" aria-valuenow="300" tabindex="0" title="좌우로 드래그하여 사이드바 너비 조절"></div>
+
 <main><header class="top"><a href="/" class="back">← 새 자료 분석</a>
 <div class="eyebrow" style="margin-top:18px">ANALYSIS OVERVIEW</div>
 <h1>{{ source.title }}</h1><div class="meta">{{ source.organization or '발표 기관 미입력' }} · 분석 #{{ run_id }} · 저장일 {{ source.completed_at.strftime('%Y.%m.%d') if source.completed_at else '미확인' }}</div></header>
@@ -90,4 +104,47 @@
 <p class="help">선택하면 기존 전체 분석 화면을 열 수 있습니다. 저장된 분석 데이터는 삭제되지 않았습니다.</p>
 <a href="/analysis/{{ run_id }}" style="color:#b7501b;text-decoration:underline">전체 분석 화면 열기</a></details>
 <p class="help">AI 분석은 취재 출발점이며 최종 사실 판단은 기자가 수행합니다.</p>
-</main></div></body></html>
+</main></div>
+<script>
+(function(){
+  const shell=document.querySelector('.shell');
+  const handle=document.querySelector('.sidebar-resizer');
+  if(!shell||!handle)return;
+  function bounds(){return {min:220,max:Math.max(220,Math.min(520,window.innerWidth-330))};}
+  function setWidth(px){
+    const {min,max}=bounds();
+    const value=Math.min(max,Math.max(min,Math.round(px)));
+    shell.style.setProperty('--rgf-sidebar-width',value+'px');
+    handle.setAttribute('aria-valuenow',String(value));
+    return value;
+  }
+  let remembered=300;
+  try{remembered=Number(localStorage.getItem('rgf_sidebar_width'))||300;}catch(_e){}
+  setWidth(remembered);
+  handle.addEventListener('pointerdown',function(event){
+    if(event.button!==0)return;
+    event.preventDefault();
+    handle.setPointerCapture(event.pointerId);
+    document.body.classList.add('sidebar-dragging');
+  });
+  handle.addEventListener('pointermove',function(event){
+    if(!handle.hasPointerCapture(event.pointerId))return;
+    setWidth(event.clientX-shell.getBoundingClientRect().left);
+  });
+  function stopDrag(event){
+    document.body.classList.remove('sidebar-dragging');
+    if(handle.hasPointerCapture(event.pointerId))handle.releasePointerCapture(event.pointerId);
+    try{localStorage.setItem('rgf_sidebar_width',handle.getAttribute('aria-valuenow'));}catch(_e){}
+  }
+  handle.addEventListener('pointerup',stopDrag);
+  handle.addEventListener('pointercancel',stopDrag);
+  handle.addEventListener('keydown',function(event){
+    if(event.key!=='ArrowLeft'&&event.key!=='ArrowRight')return;
+    event.preventDefault();
+    const value=setWidth(Number(handle.getAttribute('aria-valuenow'))+(event.key==='ArrowRight'?20:-20));
+    try{localStorage.setItem('rgf_sidebar_width',String(value));}catch(_e){}
+  });
+  window.addEventListener('resize',()=>setWidth(Number(handle.getAttribute('aria-valuenow'))));
+})();
+</script>
+</body></html>
