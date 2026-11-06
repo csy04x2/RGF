@@ -3,6 +3,7 @@ import base64
 import binascii
 import os
 import secrets
+from urllib.parse import urlsplit
 
 
 from collections import defaultdict
@@ -18,6 +19,25 @@ from .review import JournalistReview, update_review
 
 
 app = FastAPI(title="RGF Journalist Review")
+
+
+@app.middleware("http")
+async def same_origin_writes(request, call_next):
+    if request.method not in ('GET', 'HEAD', 'OPTIONS'):
+        def origin(value):
+            try:
+                parsed = urlsplit(value)
+                if parsed.scheme not in ('http', 'https') or not parsed.hostname or parsed.username or parsed.password:
+                    return None
+                return (parsed.scheme, parsed.hostname, parsed.port or (443 if parsed.scheme == 'https' else 80))
+            except ValueError:
+                return None
+
+        supplied = request.headers.get('origin') or request.headers.get('referer', '')
+        if (request.headers.get('sec-fetch-site') == 'cross-site'
+                or origin(supplied) is None or origin(supplied) != origin(str(request.url))):
+            return PlainTextResponse('Same-origin request required', status_code=403)
+    return await call_next(request)
 
 @app.middleware("http")
 async def rgf_access_guard(request, call_next):
@@ -50,6 +70,111 @@ async def rgf_access_guard(request, call_next):
 env = Environment(autoescape=True)
 
 PAGE = env.from_string((Path(__file__).resolve().parent / "templates" / "workspace_review.html.j2").read_text(encoding="utf-8"))
+
+
+def load_completed_analyses():
+    """List each completed run, including repeated analyses of one document."""
+    connection = get_connection()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """SELECT ar.id AS run_id, sd.title, ar.completed_at
+                   FROM analysis_runs ar
+                   JOIN source_documents sd ON sd.id = ar.source_document_id
+                   WHERE ar.status = 'COMPLETED'
+                   ORDER BY CASE WHEN ar.completed_at IS NULL THEN 1 ELSE 0 END,
+                            ar.completed_at DESC, ar.id DESC"""
+            )
+            return cursor.fetchall()
+    finally:
+        connection.close()
+
+
+@app.post('/analysis-runs/{run_id}/rename')
+def rename_analysis_source(run_id: int, title: str = Form(...)):
+    title = title.strip()
+    if run_id <= 0 or not title or len(title) > 500:
+        raise HTTPException(400, '제목은 1~500자로 입력하세요.')
+    connection = get_connection()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT source_document_id FROM analysis_runs WHERE id = %s', (run_id,))
+            row = cursor.fetchone()
+            if row is None:
+                raise HTTPException(404, 'Analysis run not found')
+            cursor.execute('UPDATE source_documents SET title = %s WHERE id = %s',
+                           (title, row['source_document_id']))
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+    return RedirectResponse(url=f'/workspace/{run_id}', status_code=303)
+
+
+@app.post('/analysis-runs/{run_id}/delete')
+def delete_analysis_run(run_id: int, confirmed: str = Form('')):
+    if run_id <= 0 or confirmed != 'yes':
+        raise HTTPException(400, '분석 삭제를 최종 확인해야 합니다.')
+    connection = get_connection()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT id FROM analysis_runs WHERE id = %s', (run_id,))
+            if cursor.fetchone() is None:
+                raise HTTPException(404, 'Analysis run not found')
+            # FK cascades remove this run's ideas (including reviews) and links.
+            # Shared source documents, source evidence, and PDFs stay intact.
+            cursor.execute('DELETE FROM analysis_runs WHERE id = %s', (run_id,))
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+    remaining = load_completed_analyses()
+    target = f"/workspace/{remaining[0]['run_id']}" if remaining else '/'
+    return RedirectResponse(url=target, status_code=303)
+
+
+def update_working_idea(idea_id: int, *, title=None, delete=False):
+    """Edit the working list only; the saved AI JSON remains unchanged."""
+    if idea_id <= 0:
+        raise HTTPException(400, 'Invalid idea ID')
+    connection = get_connection()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT analysis_run_id FROM article_ideas WHERE id = %s', (idea_id,))
+            row = cursor.fetchone()
+            if row is None:
+                raise HTTPException(404, 'Idea not found')
+            if delete:
+                # Only this idea's evidence links cascade; shared evidence stays.
+                cursor.execute('DELETE FROM article_ideas WHERE id = %s', (idea_id,))
+            else:
+                cursor.execute('UPDATE article_ideas SET title = %s WHERE id = %s', (title, idea_id))
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+    return RedirectResponse(url=f"/review?run_id={row['analysis_run_id']}", status_code=303)
+
+
+@app.post('/ideas/{idea_id}/rename')
+def rename_working_idea(idea_id: int, title: str = Form(...)):
+    title = title.strip()
+    if not title or len(title) > 500:
+        raise HTTPException(400, '제목은 1~500자로 입력하세요.')
+    return update_working_idea(idea_id, title=title)
+
+
+@app.post('/ideas/{idea_id}/delete')
+def delete_working_idea(idea_id: int, confirmed: str = Form('')):
+    if confirmed != 'yes':
+        raise HTTPException(400, '아이디어 삭제를 최종 확인해야 합니다.')
+    return update_working_idea(idea_id, delete=True)
 
 
 def load_review_data(run_id: int):
@@ -139,6 +264,7 @@ def review_page(run_id: int = 1):
         ideas=ideas,
         evidence=evidence,
         source=source,
+        completed_analyses=load_completed_analyses(),
     )
 
 
@@ -371,7 +497,7 @@ def workspace_overview(run_id: int):
             )
             count = cursor.fetchone()
             cursor.execute(
-                "SELECT lead_id, title, review_status FROM article_ideas WHERE analysis_run_id = %s ORDER BY id",
+                "SELECT id, lead_id, title, review_status FROM article_ideas WHERE analysis_run_id = %s ORDER BY id",
                 (run_id,),
             )
             nav_ideas = cursor.fetchall()
@@ -398,4 +524,5 @@ def workspace_overview(run_id: int):
         idea_count=count['total'] if count else 0, nav_ideas=nav_ideas,
         changes=analysis.material_changes,
         gaps=structured.source_gaps if structured else [],
+        completed_analyses=load_completed_analyses(),
     )

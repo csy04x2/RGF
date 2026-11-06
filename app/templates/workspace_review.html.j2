@@ -1,3 +1,10 @@
+{% macro idea_management(idea) %}
+<details class="run-actions"><summary role="button" aria-label="아이디어 {{ idea.lead_id }} 관리">⋯</summary>
+<div class="management-menu">
+<details><summary>이름 변경</summary><form method="post" action="/ideas/{{ idea.id }}/rename"><label>아이디어 제목<input name="title" value="{{ idea.title }}" required maxlength="500"></label><button type="submit">이름 저장</button></form></details>
+<form method="post" action="/ideas/{{ idea.id }}/delete" onsubmit="return confirm('이 아이디어를 삭제하시겠습니까? 연결된 기자 검토 기록과 원문 근거 링크가 작업 목록에서 사라집니다. 원본 AI 분석 JSON과 다른 아이디어는 유지됩니다.');"><button type="submit" name="confirmed" value="yes">삭제</button></form>
+</div></details>
+{% endmacro %}
 <!doctype html>
 <html lang="ko">
 <head>
@@ -99,6 +106,24 @@
     .key-point{margin:17px 0 14px;border-left:4px solid #e76b2b}
     .priority{display:inline-block;border:1px solid currentColor;border-radius:6px;padding:3px 7px;font-size:12px;font-weight:750}
     .priority-A{color:#a13d17;background:#fff0e5}.priority-B{color:#775414;background:#fff9df}.priority-C{color:#48616d;background:#edf5f8}
+    .saved-run{display:flex;align-items:flex-start;gap:4px;min-width:0}.saved-run>.analysis-link{flex:1;min-width:0}
+    .run-actions{flex:0 0 auto}.run-actions>summary{cursor:pointer;padding:9px;list-style:none}.run-actions>summary::-webkit-details-marker{display:none}
+    .run-actions[open]{flex:1;min-width:0}.run-actions form{padding:8px 0;font-size:12px}.run-actions input{width:100%;min-width:0;margin:6px 0}.run-actions button{font:inherit;margin:4px 0}.run-actions small{display:block;line-height:1.5;color:#82746a}
+    .managed-row{display:flex;flex-wrap:wrap;align-items:flex-start;gap:4px;position:relative;min-width:0;border-radius:8px;padding:4px}
+    .managed-row>a,.managed-row>.idea-button{flex:1;min-width:0;margin:0;background:transparent;border:0}
+    .managed-row:hover,.managed-row:focus-within{background:#f3e1d3}
+    .managed-row:has(>a.selected),.managed-row:has(>.idea-button[aria-pressed="true"]){background:#fcebe0;box-shadow:inset 3px 0 #c45419}
+    .managed-row[hidden]{display:none!important}
+    .managed-row>.run-actions{flex:0 0 36px}
+    .managed-row>.run-actions>summary{opacity:0;cursor:pointer;list-style:none;padding:8px;text-align:center;border-radius:6px}
+    .managed-row:hover>.run-actions>summary,.managed-row:focus-within>.run-actions>summary,.managed-row>.run-actions[open]>summary{opacity:1}
+    .managed-row>.run-actions[open]{flex:0 0 100%}
+    .managed-row>.run-actions[open]>summary{position:absolute;right:4px;top:4px}
+    .managed-row:has(>.run-actions[open])>:first-child{margin-right:40px;flex-basis:calc(100% - 44px)}
+    .management-menu{background:#fffdfb;border:1px solid #ddcec2;border-radius:8px;padding:8px;margin-top:4px;box-shadow:0 3px 10px #5c352515;font-size:13px}
+    .management-menu>details>summary{cursor:pointer;padding:8px}
+    .management-menu form{padding:4px 8px;margin:0}.management-menu input{width:100%;margin:6px 0;min-width:0}.management-menu button{font:inherit;padding:6px 8px}.management-menu small{display:block;line-height:1.5;color:#82746a}
+    @media(hover:none),(pointer:coarse),(max-width:650px){.managed-row>.run-actions>summary{opacity:1}}
 </style>
 </head>
 <body>
@@ -108,15 +133,39 @@
     <a href="/" class="new">＋ 새 자료 분석</a>
     <nav class="nav" aria-label="작업 메뉴">
       <p class="nav-title">WORKSPACE</p>
+      <details class="lead-group" open>
+        <summary>보도자료</summary>
+        <div class="lead-menu" aria-label="저장된 완료 분석">
+          {% for saved in completed_analyses %}
+          <div class="saved-run managed-row">
+          <a class="analysis-link{{ ' selected' if saved.run_id == run_id else '' }}" href="/workspace/{{ saved.run_id }}"{% if saved.run_id == run_id %} aria-current="true"{% endif %}>
+            <span class="lead-label">{{ saved.title }}</span>
+            <span class="lead-status">분석 #{{ saved.run_id }} · {{ saved.completed_at.strftime('%Y.%m.%d') if saved.completed_at else '완료일 미확인' }}</span>
+          </a>
+          <details class="run-actions"><summary role="button" aria-label="분석 #{{ saved.run_id }} 관리">⋯</summary>
+            <div class="management-menu"><details><summary>이름 변경</summary>
+            <form method="post" action="/analysis-runs/{{ saved.run_id }}/rename">
+              <label>이름 변경<input name="title" value="{{ saved.title }}" required maxlength="500" aria-label="보도자료 제목"></label>
+              <small>같은 보도자료의 모든 분석에 제목 변경이 적용됩니다.</small><button type="submit">이름 저장</button>
+            </form></details>
+            <form method="post" action="/analysis-runs/{{ saved.run_id }}/delete" onsubmit="return confirm('분석 #{{ saved.run_id }}을 삭제하시겠습니까? 연결된 취재 아이디어와 기자 검토 기록도 삭제됩니다. 다른 분석과 PDF 파일은 유지됩니다.');">
+              <button type="submit" name="confirmed" value="yes">삭제</button>
+            </form>
+          </div></details></div>
+          {% else %}<span class="muted">완료된 분석이 없습니다.</span>{% endfor %}
+        </div>
+      </details>
       <a href="/workspace/{{ run_id }}">▦ 분석 개요</a>
       <details class="lead-group" open>
         <summary>◉ 취재 아이디어 <span class="lead-count">{{ ideas|length }}</span></summary>
         <div class="lead-menu" aria-label="추가 취재 과제">
           {% for idea in ideas %}
+          <div class="managed-row">
           <a class="lead-link" href="/review?run_id={{ run_id }}&amp;lead={{ idea.lead_id|urlencode }}" data-lead="{{ idea.lead_id }}" aria-controls="detail-{{ idea.id }}">
-            <span class="lead-label">{{ idea.lead_id }} · {{ idea.title }}</span>
+            <span class="lead-label">{{ idea.title }}</span>
             <span class="lead-status{{ ' hold' if idea.review_status == '보류' else '' }}">{{ idea.review_status }}</span>
           </a>
+          {{ idea_management(idea) }}</div>
           {% else %}<span class="muted">등록된 취재 아이디어 없음</span>{% endfor %}
         </div>
       </details>
@@ -142,11 +191,12 @@
         </div>
         <div class="idea-list" aria-label="아이디어 선택" id="idea-list">
           {% for idea in ideas %}
+          <div class="managed-row">
           <button type="button" class="idea-button" data-lead="{{ idea.lead_id }}" data-status="{{ idea.review_status }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">
-            <span class="id-chip">{{ idea.lead_id }}</span>
-            <span class="idea-text"><strong>{{ idea.title }}</strong><span class="priority priority-{{ idea.priority }}">우선순위 {{ idea.priority }}</span></span>
+            <span class="idea-text"><strong>{{ idea.title }}</strong></span>
             <span class="status">{{ idea.review_status }}</span>
           </button>
+          {{ idea_management(idea) }}</div>
           {% else %}<div class="empty">저장된 취재 아이디어가 없습니다.</div>{% endfor %}
         </div>
         <p class="help" id="filter-empty" hidden>해당 상태의 아이디어가 없습니다.</p>
@@ -244,7 +294,7 @@
   function applyFilter(value){
     filter=value;
     filters.forEach(b=>{const active=b.dataset.filter===value;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});
-    buttons.forEach(b=>{b.hidden=value!=='all'&&b.dataset.status!==value;});
+    buttons.forEach(b=>{b.hidden=value!=='all'&&b.dataset.status!==value;b.closest('.managed-row').hidden=b.hidden;});
     document.getElementById('filter-empty').hidden=buttons.some(b=>!b.hidden);
     const active=buttons.find(b=>b.getAttribute('aria-pressed')==='true'&&!b.hidden);
     const first=buttons.find(b=>!b.hidden);
@@ -309,6 +359,14 @@
   });
   window.addEventListener('resize',()=>setWidth(Number(handle.getAttribute('aria-valuenow'))));
 })();
+</script>
+<script>
+document.addEventListener('keydown',function(event){
+  if(event.key==='Escape'){
+    const menu=event.target.closest('.run-actions');
+    if(menu){menu.open=false;menu.querySelector('summary').focus();event.preventDefault();}
+  }
+});
 </script>
 </body>
 </html>
