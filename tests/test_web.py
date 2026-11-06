@@ -500,3 +500,29 @@ def test_upload_sidebar_retains_existing_workspace_scripts():
     # Reuse the established resizer and management interactions unchanged.
     scripts = overview[overview.index('<script>'):overview.rindex('</script>') + len('</script>')]
     assert scripts in upload
+
+
+def test_favicon_served_as_svg_with_existing_auth(management_client):
+    from xml.etree import ElementTree
+    response = management_client.get('/static/favicon.svg')
+    assert response.status_code == 200
+    assert response.headers['content-type'].startswith('image/svg+xml')
+    svg = ElementTree.fromstring(response.content)
+    assert svg.tag == '{http://www.w3.org/2000/svg}svg'
+    assert svg.attrib['fill'] == 'none'
+    assert svg.find('{http://www.w3.org/2000/svg}g').attrib['stroke'] == '#e76b2b'
+    assert TestClient(web.app).get('/static/favicon.svg').status_code == 401
+
+
+@pytest.mark.parametrize('url', ['/', '/workspace/2', '/review?run_id=2',
+                                  '/analysis/2', '/analysis-status/3', '/analysis-status/5'])
+def test_major_html_pages_link_favicon(management_client, monkeypatch, url):
+    if url.startswith('/analysis-status/'):
+        connection = MagicMock()
+        connection.cursor.return_value.__enter__.return_value.fetchone.return_value = {
+            'status': 'FAILED' if url.endswith('/3') else 'PENDING', 'created_at': None,
+        }
+        monkeypatch.setattr(web, 'get_connection', lambda: connection)
+    html = management_client.get(url).text
+    head = html.split('<head>', 1)[1].split('</head>', 1)[0]
+    assert '<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">' in head

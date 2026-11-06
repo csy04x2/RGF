@@ -10,6 +10,7 @@ from collections import defaultdict
 
 from fastapi import FastAPI, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, PlainTextResponse
+from fastapi.staticfiles import StaticFiles
 from jinja2 import Environment, FileSystemLoader
 
 from .database import get_connection
@@ -19,6 +20,7 @@ from .review import JournalistReview, update_review
 
 
 app = FastAPI(title="RGF Journalist Review")
+app.mount('/static', StaticFiles(directory=Path(__file__).resolve().parent / 'static'), name='static')
 
 
 @app.middleware("http")
@@ -416,6 +418,7 @@ def analysis_status_page(run_id: int):
         + refresh
         + '<meta name="viewport" content="width=device-width,initial-scale=1">'
         + '<title>RGF · 분석 진행 상태</title>'
+        + '<link rel="icon" type="image/svg+xml" href="/static/favicon.svg">'
         + '<style>body{background:#f7f1eb;font-family:system-ui,sans-serif;color:#2b2521;'
         + 'margin:10vh auto;padding:24px;max-width:640px}main{background:white;'
         + 'border:1px solid #eadbd0;border-radius:14px;padding:28px}h1{font-size:24px}'
