@@ -4,6 +4,7 @@ from app.web import app
 
 
 def test_access_guard_challenges_anonymous_user(monkeypatch):
+    monkeypatch.setattr('app.web.load_completed_analyses', lambda: [])
     monkeypatch.setenv("RGF_ACCESS_PASSWORD", "test-only-password")
     client = TestClient(app)
     response = client.get("/")
@@ -21,6 +22,7 @@ def test_hosted_service_fails_closed_without_password(monkeypatch):
 
 
 def test_local_can_still_open_upload_without_password(monkeypatch):
+    monkeypatch.setattr('app.web.load_completed_analyses', lambda: [])
     monkeypatch.delenv("RGF_ACCESS_PASSWORD", raising=False)
     monkeypatch.delenv("RAILWAY_PROJECT_ID", raising=False)
     monkeypatch.delenv("RAILWAY_ENVIRONMENT_NAME", raising=False)

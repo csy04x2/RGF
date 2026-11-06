@@ -438,3 +438,65 @@ def test_idea_management_failure_rolls_back(monkeypatch, delete):
     connection.commit.assert_not_called()
     connection.rollback.assert_called_once()
     connection.close.assert_called_once()
+
+
+def test_upload_sidebar_uses_completed_runs_without_mixing_ideas(management_client, saved_runs):
+    from html.parser import HTMLParser
+
+    class Groups(HTMLParser):
+        groups = 0
+
+        def handle_starttag(self, tag, attrs):
+            attrs = dict(attrs)
+            if tag == 'details' and attrs.get('class') == 'lead-group':
+                assert 'open' not in attrs
+                self.groups += 1
+
+    response = management_client.get('/')
+    assert response.status_code == 200
+    html = response.text
+    parser = Groups()
+    parser.feed(html)
+    assert parser.groups == 2
+    assert '▤ 자료 등록' not in html
+    assert '보도자료를 먼저 선택해 취재 아이디어를 확인하세요.' in html
+    assert '취재 아이디어</summary>' in html
+    assert html.index('분석 #4 ·') < html.index('분석 #2 ·')
+    for run_id in [2, 4]:
+        assert f'href="/workspace/{run_id}"' in html
+        assert f'action="/analysis-runs/{run_id}/rename"' in html
+        assert f'action="/analysis-runs/{run_id}/delete"' in html
+    for run_id in [3, 5, 6]:
+        assert f'href="/workspace/{run_id}"' not in html
+    assert '동일 보도자료 &lt;script&gt;제목&lt;/script&gt;' in html
+    assert '<script>제목</script>' not in html
+    assert 'only-idea' not in html and '/ideas/' not in html
+    assert not any('article_ideas' in sql for sql, _ in saved_runs)
+    for control in ['.managed-row:hover,.managed-row:focus-within{background:#f3e1d3}',
+                    '.lead-label{white-space:normal;', 'popover="manual"',
+                    '✎ 이름 변경', 'return confirm(', 'panel.showPopover()',
+                    'sidebar-resizer', 'setPointerCapture', 'rgf_sidebar_width',
+                    "event.key!=='ArrowLeft'", "event.key==='Escape'"]:
+        assert control in html
+    assert 'method="post" action="/analyze" enctype="multipart/form-data" id="analyze-form"' in html
+    assert 'accept=".pdf,application/pdf" required' in html
+    assert "button.disabled=true" in html
+
+
+def test_upload_empty_analysis_list_reuses_loader(monkeypatch):
+    loader = MagicMock(return_value=[])
+    monkeypatch.setattr(web, 'load_completed_analyses', loader)
+    html = web.upload_page()
+    loader.assert_called_once_with()
+    assert '완료된 분석이 없습니다.' in html
+    assert '보도자료를 먼저 선택' in html
+    assert 'action="/analyze"' in html
+
+
+def test_upload_sidebar_retains_existing_workspace_scripts():
+    templates = Path(web.__file__).parent / 'templates'
+    overview = (templates / 'workspace_overview.html.j2').read_text(encoding='utf-8')
+    upload = (templates / 'workspace_upload.html').read_text(encoding='utf-8')
+    # Reuse the established resizer and management interactions unchanged.
+    scripts = overview[overview.index('<script>'):overview.rindex('</script>') + len('</script>')]
+    assert scripts in upload

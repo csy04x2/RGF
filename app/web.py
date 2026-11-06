@@ -337,7 +337,8 @@ MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
 @app.get("/", response_class=HTMLResponse)
 def upload_page():
-    return (Path(__file__).resolve().parent / "templates" / "workspace_upload.html").read_text(encoding="utf-8")
+    template = env.from_string((Path(__file__).resolve().parent / "templates" / "workspace_upload.html").read_text(encoding="utf-8"))
+    return template.render(completed_analyses=load_completed_analyses(), run_id=None)
 
 @app.post("/analyze")
 def analyze_pdf(
