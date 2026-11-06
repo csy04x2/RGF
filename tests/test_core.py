@@ -35,3 +35,66 @@ def test_api_key_absent(monkeypatch):
 def test_schema_sync():
     assert json.loads(Path('schemas/source-structure.schema.json').read_text(encoding='utf8'))==SourceStructure.model_json_schema()
     assert json.loads(Path('schemas/reporting-analysis.schema.json').read_text(encoding='utf8'))==ReportingAnalysis.model_json_schema()
+
+def test_normalize_changes_only_reference_descriptions():
+    data = analysis_data()
+    data['reporting_leads'][0]['related_items'] = [
+        {'type': 'policy_action', 'id': 'PA1', 'description': 'AI paraphrase'},
+        {'type': 'material_change', 'id': 'MC1', 'description': 'another paraphrase'},
+        {'type': 'source_claim', 'id': None, 'description': 'original claim'},
+    ]
+    analysis = ReportingAnalysis.model_validate(data)
+    expected = analysis.model_dump()
+    expected['reporting_leads'][0]['related_items'][0]['description'] = 'a'
+    expected['reporting_leads'][0]['related_items'][1]['description'] = 'c'
+    normalize_related_descriptions(analysis)
+    assert analysis.model_dump() == expected
+    validate_integrity(analysis)
+
+@pytest.mark.parametrize('kind,ref', [
+    ('policy_action', 'missing'), ('policy_action', 'MC1'),
+    ('material_change', 'PA1'), ('material_change', 'missing'),
+    ('source_claim', 'PA1'),
+])
+def test_normalize_rejects_bad_references_without_mutation(kind, ref):
+    data = analysis_data()
+    data['reporting_leads'][0]['related_items'].append(
+        {'type': kind, 'id': ref, 'description': 'invalid'}
+    )
+    data['reporting_leads'][0]['related_items'][0]['description'] = 'paraphrase'
+    analysis = ReportingAnalysis.model_validate(data)
+    before = analysis.model_dump()
+    with pytest.raises(IntegrityError):
+        normalize_related_descriptions(analysis)
+    assert analysis.model_dump() == before
+
+@pytest.mark.parametrize('same_collection', [True, False])
+def test_normalize_rejects_duplicate_ids(same_collection):
+    data = analysis_data()
+    if same_collection:
+        data['policy_actions'].append(dict(data['policy_actions'][0]))
+    else:
+        data['limitations'][0]['id'] = 'PA1'
+    analysis = ReportingAnalysis.model_validate(data)
+    with pytest.raises(IntegrityError, match='duplicate ID'):
+        normalize_related_descriptions(analysis)
+
+def test_unknown_related_type_rejected():
+    data = analysis_data()
+    data['reporting_leads'][0]['related_items'][0]['type'] = 'unknown'
+    with pytest.raises(ValidationError):
+        ReportingAnalysis.model_validate(data)
+
+def test_strict_integrity_still_rejects_description_mismatch():
+    data = analysis_data()
+    data['reporting_leads'][0]['related_items'][0]['description'] = 'paraphrase'
+    with pytest.raises(IntegrityError, match='description mismatch'):
+        validate_integrity(ReportingAnalysis.model_validate(data))
+
+def test_report_summary_preserves_bullets_and_escapes_html():
+    data = analysis_data()
+    data['discovery_summary'] = '- 핵심 결론\n- <script>alert(1)</script>'
+    html = render(ReportingAnalysis.model_validate(data))
+    assert '- 핵심 결론\n- &lt;script&gt;alert(1)&lt;/script&gt;' in html
+    assert '<script>alert(1)</script>' not in html
+    assert 'white-space:pre-wrap;overflow-wrap:anywhere' in html

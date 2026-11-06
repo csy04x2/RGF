@@ -60,3 +60,11 @@ def test_validator_prompt_contains_status_rules():
 
     assert "Recheck implementation_status" in prompt
     assert "Preserve object IDs" in prompt
+
+def test_discovery_prompt_readability_rules():
+    prompt = runtime_prompt('discovery', source_material='source')
+    for rule in ['쉬운 한국어', '핵심 결론', "'- ' 글머리표", 'unknown',
+                 '구체적인 의문문', '법적 구분', '불확실성',
+                 'JSON 스키마와 기존 필드를 유지', 'HTML을 문자열에 삽입하지',
+                 '내용상 관련성이 입증됐다는 의미가 아니다']:
+        assert rule in prompt

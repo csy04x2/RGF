@@ -3,7 +3,7 @@ class IntegrityError(ValueError): pass
 def snapshot(a): return {c:[object_id(x) for x in getattr(a,c)] for c in COLLECTIONS}
 def validate_integrity(a:ReportingAnalysis):
     registries={c:{object_id(x) for x in getattr(a,c)} for c in COLLECTIONS}; all_ids=[]
-    for ids in registries.values(): all_ids.extend(ids)
+    for c in COLLECTIONS: all_ids.extend(object_id(x) for x in getattr(a,c))
     if len(all_ids)!=len(set(all_ids)): raise IntegrityError('duplicate ID')
     pa,mc,rl=registries['policy_actions'],registries['material_changes'],registries['reporting_leads']
     for lead in a.reporting_leads:
@@ -25,3 +25,25 @@ def validate_integrity(a:ReportingAnalysis):
     return snapshot(a)
 def validate_preservation(before,after):
     if snapshot(before)!=snapshot(after): raise IntegrityError('validator changed object IDs or counts')
+
+def normalize_related_descriptions(a: ReportingAnalysis):
+    """Copy canonical reference labels; this does not verify semantic relevance.
+
+    Validate a copy first so invalid IDs/types/duplicates cannot be repaired or
+    partially mutate the original analysis. Only related-item descriptions change.
+    """
+    candidate = a.model_copy(deep=True)
+    targets = {
+        'policy_action': {x.id: x.action for x in a.policy_actions},
+        'material_change': {x.id: x.change for x in a.material_changes},
+    }
+    for lead in candidate.reporting_leads:
+        for related in lead.related_items:
+            labels = targets.get(related.type, {})
+            if related.id in labels:
+                related.description = labels[related.id]
+    validate_integrity(candidate)
+    for original, normalized in zip(a.reporting_leads, candidate.reporting_leads):
+        for related, corrected in zip(original.related_items, normalized.related_items):
+            related.description = corrected.description
+    return a

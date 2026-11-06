@@ -95,6 +95,10 @@
     .idea-text strong{white-space:normal;overflow-wrap:anywhere;word-break:keep-all}
     .idea-button .status{flex-shrink:0}
     @media(max-width:1150px){.workspace{grid-template-columns:1fr}.idea-list{max-height:300px}}
+    .info-card p,.info-card li{white-space:pre-wrap;overflow-wrap:anywhere}
+    .key-point{margin:17px 0 14px;border-left:4px solid #e76b2b}
+    .priority{display:inline-block;border:1px solid currentColor;border-radius:6px;padding:3px 7px;font-size:12px;font-weight:750}
+    .priority-A{color:#a13d17;background:#fff0e5}.priority-B{color:#775414;background:#fff9df}.priority-C{color:#48616d;background:#edf5f8}
 </style>
 </head>
 <body>
@@ -140,7 +144,7 @@
           {% for idea in ideas %}
           <button type="button" class="idea-button" data-lead="{{ idea.lead_id }}" data-status="{{ idea.review_status }}" aria-pressed="{{ 'true' if loop.first else 'false' }}">
             <span class="id-chip">{{ idea.lead_id }}</span>
-            <span class="idea-text"><strong>{{ idea.title }}</strong><span>우선순위 {{ idea.priority }}</span></span>
+            <span class="idea-text"><strong>{{ idea.title }}</strong><span class="priority priority-{{ idea.priority }}">우선순위 {{ idea.priority }}</span></span>
             <span class="status">{{ idea.review_status }}</span>
           </button>
           {% else %}<div class="empty">저장된 취재 아이디어가 없습니다.</div>{% endfor %}
@@ -152,12 +156,11 @@
         <article class="detail" id="detail-{{ idea.id }}" data-detail-id="{{ idea.id }}" {% if not loop.first %}hidden{% endif %}>
           <div class="detail-head">
             <span class="id-chip">{{ idea.lead_id }}</span>
-            <div><div class="eyebrow">REPORTING LEAD · 우선순위 {{ idea.priority }}</div><h2>{{ idea.title }}</h2></div>
+            <div><div class="priority priority-{{ idea.priority }}">우선순위 {{ idea.priority }} · {{ {'A':'핵심 변화·책임 확인','B':'중요한 보완 취재','C':'후속 확인·맥락'}.get(idea.priority, '') }}</div><h2>{{ idea.title }}</h2></div>
             <span class="status">{{ idea.review_status }}</span>
           </div>
-          <p class="summary">{{ idea.angle }}</p>
+          <section class="info-card key-point"><h3>◎ 핵심 취재 포인트</h3><p>{{ idea.angle }}</p></section>
           <div class="cards">
-            <section class="info-card"><h3>◎ 기사 방향</h3><p>{{ idea.angle }}</p></section>
             <section class="info-card"><h3>◇ 취재 가치</h3><p>{{ idea.why_it_matters }}</p></section>
             <section class="info-card"><h3>？ 추가 취재 질문</h3>
               {% if idea.get('reporting_question') %}<p>{{ idea.reporting_question }}</p>
