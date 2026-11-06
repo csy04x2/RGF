@@ -34,8 +34,14 @@ async def same_origin_writes(request, call_next):
                 return None
 
         supplied = request.headers.get('origin') or request.headers.get('referer', '')
+        expected = origin(str(request.url))
+        public_domain = os.getenv('RAILWAY_PUBLIC_DOMAIN', '').strip()
+        if public_domain and (os.getenv('RAILWAY_PROJECT_ID') or os.getenv('RAILWAY_ENVIRONMENT_NAME')):
+            # Railway terminates public HTTPS before forwarding to internal HTTP.
+            # Trust server configuration, never client-supplied forwarding headers.
+            expected = origin(f'https://{public_domain}')
         if (request.headers.get('sec-fetch-site') == 'cross-site'
-                or origin(supplied) is None or origin(supplied) != origin(str(request.url))):
+                or origin(supplied) is None or expected is None or origin(supplied) != expected):
             return PlainTextResponse('Same-origin request required', status_code=403)
     return await call_next(request)
 
