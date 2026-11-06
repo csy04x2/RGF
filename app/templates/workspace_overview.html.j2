@@ -1,7 +1,7 @@
 {% macro idea_management(idea) %}
 <details class="run-actions"><summary role="button" aria-label="아이디어 {{ idea.lead_id }} 관리">⋯</summary>
-<div class="management-menu">
-<details><summary>이름 변경</summary><form method="post" action="/ideas/{{ idea.id }}/rename"><label>아이디어 제목<input name="title" value="{{ idea.title }}" required maxlength="500"></label><button type="submit">이름 저장</button></form></details>
+<div class="management-menu" popover="manual">
+<details><summary>✎ 이름 변경</summary><form method="post" action="/ideas/{{ idea.id }}/rename"><label>아이디어 제목<input name="title" value="{{ idea.title }}" required maxlength="500"></label><button type="submit">이름 저장</button></form></details>
 <form method="post" action="/ideas/{{ idea.id }}/delete" onsubmit="return confirm('이 아이디어를 삭제하시겠습니까? 연결된 기자 검토 기록과 원문 근거 링크가 작업 목록에서 사라집니다. 원본 AI 분석 JSON과 다른 아이디어는 유지됩니다.');"><button type="submit" name="confirmed" value="yes">삭제</button></form>
 </div></details>
 {% endmacro %}
@@ -93,12 +93,20 @@
     .managed-row>.run-actions{flex:0 0 36px}
     .managed-row>.run-actions>summary{opacity:0;cursor:pointer;list-style:none;padding:8px;text-align:center;border-radius:6px}
     .managed-row:hover>.run-actions>summary,.managed-row:focus-within>.run-actions>summary,.managed-row>.run-actions[open]>summary{opacity:1}
-    .managed-row>.run-actions[open]{flex:0 0 100%}
-    .managed-row>.run-actions[open]>summary{position:absolute;right:4px;top:4px}
-    .managed-row:has(>.run-actions[open])>:first-child{margin-right:40px;flex-basis:calc(100% - 44px)}
-    .management-menu{background:#fffdfb;border:1px solid #ddcec2;border-radius:8px;padding:8px;margin-top:4px;box-shadow:0 3px 10px #5c352515;font-size:13px}
-    .management-menu>details>summary{cursor:pointer;padding:8px}
-    .management-menu form{padding:4px 8px;margin:0}.management-menu input{width:100%;margin:6px 0;min-width:0}.management-menu button{font:inherit;padding:6px 8px}.management-menu small{display:block;line-height:1.5;color:#82746a}
+    .managed-row>.run-actions[open]{flex:0 0 36px;min-width:0}
+    .management-menu{position:absolute;inset:auto;width:184px;max-width:calc(100vw - 16px);margin:0;background:#fffcf9;color:#514137;border:0;border-radius:10px;padding:5px;box-shadow:0 5px 22px #5c352526;font-size:13px;z-index:1000}
+    .management-menu:has(details[open]){width:240px}
+    .management-menu summary{cursor:pointer;list-style:none}
+    .management-menu summary::marker,.run-actions>summary::marker{content:""}
+    .management-menu summary::-webkit-details-marker,.run-actions>summary::-webkit-details-marker{display:none}
+    .management-menu>details>summary,.management-menu>form>button{display:block;width:100%;text-align:left;padding:9px 11px;margin:0;border:0;border-radius:6px;background:transparent;font:inherit;line-height:1.5}
+    .management-menu>form>button{color:#b43b32}
+    .management-menu>details>summary:hover,.management-menu>form>button:hover{background:#fbe8db}
+    .management-menu summary:focus-visible,.management-menu button:focus-visible{outline:2px solid #e76b2b;outline-offset:-2px}
+    .management-menu form{padding:0;margin:0}.management-menu details form{padding:8px 10px}
+    .management-menu input{width:100%;min-width:0;margin:6px 0;padding:8px;border:1px solid #ddcec2;border-radius:6px;background:#fff;color:#2b2521}
+    .management-menu details button{border:0;border-radius:6px;background:#e76b2b;color:#fff;padding:7px 11px;font:inherit}
+    .management-menu small{display:block;line-height:1.5;color:#82746a}
     @media(hover:none),(pointer:coarse),(max-width:650px){.managed-row>.run-actions>summary{opacity:1}}
 </style></head><body><div class="shell">
 <aside class="sidebar" aria-label="기본 탐색">
@@ -115,7 +123,7 @@
 <span class="lead-status">분석 #{{ saved.run_id }} · {{ saved.completed_at.strftime('%Y.%m.%d') if saved.completed_at else '완료일 미확인' }}</span>
 </a>
 <details class="run-actions"><summary role="button" aria-label="분석 #{{ saved.run_id }} 관리">⋯</summary>
-<div class="management-menu"><details><summary>이름 변경</summary>
+<div class="management-menu" popover="manual"><details><summary>✎ 이름 변경</summary>
 <form method="post" action="/analysis-runs/{{ saved.run_id }}/rename">
 <label>이름 변경<input name="title" value="{{ saved.title }}" required maxlength="500" aria-label="보도자료 제목"></label>
 <small>같은 보도자료의 모든 분석에 제목 변경이 적용됩니다.</small><button type="submit">이름 저장</button>
@@ -194,11 +202,55 @@
 })();
 </script>
 <script>
-document.addEventListener('keydown',function(event){
-  if(event.key==='Escape'){
-    const menu=event.target.closest('.run-actions');
-    if(menu){menu.open=false;menu.querySelector('summary').focus();event.preventDefault();}
+(function(){
+  const actions=[...document.querySelectorAll('.run-actions')];
+  function close(action,restoreFocus){
+    const panel=action.querySelector('.management-menu');
+    if(panel.matches(':popover-open'))panel.hidePopover();
+    action.open=false;
+    panel.querySelectorAll('details[open]').forEach(item=>item.open=false);
+    if(restoreFocus)action.querySelector('summary').focus({preventScroll:true});
   }
-});
+  function position(action){
+    const panel=action.querySelector('.management-menu');
+    const anchor=action.querySelector('summary').getBoundingClientRect();
+    const box=panel.getBoundingClientRect();
+    const left=Math.max(8,Math.min(anchor.right-box.width,window.innerWidth-box.width-8));
+    const top=anchor.bottom+box.height+6<=window.innerHeight
+      ? anchor.bottom+6 : Math.max(8,anchor.top-box.height-6);
+    panel.style.left=(left+window.scrollX)+'px';
+    panel.style.top=(top+window.scrollY)+'px';
+  }
+  actions.forEach(action=>{
+    const panel=action.querySelector('.management-menu');
+    action.addEventListener('toggle',event=>{
+      if(event.target!==action)return;
+      if(action.open){
+        actions.filter(other=>other!==action&&other.open).forEach(other=>close(other,false));
+        panel.showPopover();
+        position(action);
+        panel.querySelector('summary').focus({preventScroll:true});
+      }else close(action,false);
+    });
+    panel.querySelector('details').addEventListener('toggle',event=>{
+      if(!action.open)return;
+      position(action);
+      if(event.target.open)panel.querySelector('input').focus({preventScroll:true});
+    });
+  });
+  document.addEventListener('click',event=>{
+    actions.filter(action=>action.open&&!action.contains(event.target)).forEach(action=>close(action,false));
+  });
+  document.addEventListener('keydown',function(event){
+    if(event.key==='Escape'){
+      actions.filter(action=>action.open).forEach(action=>{close(action,true);event.preventDefault();});
+    }
+  });
+  window.addEventListener('resize',()=>actions.filter(action=>action.open).forEach(action=>position(action)));
+  document.addEventListener('scroll',event=>{
+    actions.filter(action=>action.open&&!action.querySelector('.management-menu').contains(event.target))
+      .forEach(action=>close(action,false));
+  },true);
+})();
 </script>
 </body></html>
